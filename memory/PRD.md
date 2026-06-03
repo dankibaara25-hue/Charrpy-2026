@@ -39,14 +39,28 @@ mascot, Duolingo-style 3D playful UI, dark theme with vibrant orange accents.
 - Onboarding-complete placeholder screen
 
 ### M2 — Avatar selection ✅
-- 19 illustrated avatars (cohesive light-blue background, gamified style)
-  bundled under `/app/frontend/assets/images/avatars/`
-- Grid screen (`/avatar-select`) with 3-column responsive layout
-- Duolingo-style 3D selection treatment: orange ring + checkmark badge +
-  thick bottom border on the selected tile
-- Selection persisted via `@/src/utils/storage` (`charrpy.avatar.id`)
-- Routed into the flow as: commitment slide → `/avatar-select` → `/onboarding-complete`
-- Completion screen now hero-renders the chosen avatar
+### M2.5 — UI refresh + Firebase Anonymous Auth ✅
+- All onboarding screens migrated from dark BG to warm cream palette so the
+  Duolingo-style 3D depth reads strongly. Strong dark-brown bottom shadow on
+  every Button3D / Chip3D, both at rest and pressed.
+- Welcome and avatar screens slimmed to title + ≤3-word subtitle. Onboarding
+  subtitles trimmed to ≤6 words.
+- Custom illustrations (welcome / set-alarm / ringtone / win-the-day /
+  thank-you) PNG-rasterised from user-provided SVGs (transparent background
+  enforced post-render so the cream BG shows through).
+- Firebase modular Web SDK initialised in `src/lib/firebase.ts` against the
+  `charrpy-2026` project. AuthProvider wraps the whole app and listens for
+  `onAuthStateChanged`. Splash now routes returning anonymous users straight
+  to `/(main)`, new users to `/welcome`.
+- New `/nickname` route after avatar-select: validates a `[A-Za-z0-9_.-]{2,16}`
+  handle and calls `signInAnonymously()` → routes to `/paywall`.
+- New `/paywall` route — Charrpy Pro stub with feature card + price card.
+  RevenueCat native SDK can't run in Expo Go (per integration playbook), so
+  both buttons currently route to `/(main)`. The stub has explanatory copy
+  for the user, and the file's top comment documents how to swap in
+  `RevenueCatUI.presentPaywall` in a dev build.
+- New `/(main)` placeholder for the eventual alarms / leaderboard / settings.
+  Greets `hey {nickname}`, shows avatar + truncated UID, has a reset button.
 
 ### M3 — Main app screens (next)
 - Alarms (CRUD)

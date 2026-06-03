@@ -80,7 +80,7 @@ const Wheel: React.FC<WheelProps> = ({
           );
         }}
       />
-      <View pointerEvents="none" style={styles.selectionLine} />
+      <View style={styles.selectionLine} pointerEvents="none" />
     </View>
   );
 };

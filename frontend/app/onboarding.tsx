@@ -3,7 +3,7 @@
 // is committed to storage on completion so we can later branch the entry
 // route based on whether the user has finished onboarding.
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Image,
   Pressable,
@@ -56,23 +56,14 @@ export default function Onboarding() {
   const total = ONBOARDING_STEPS.length;
   const progress = (index + 1) / total;
 
-  // Hydrate default time value the first time a "time" step is shown so the
-  // Continue button enables without forcing the user to scroll the wheels.
-  useEffect(() => {
-    if (step.type === "time" && !answers.time[step.key]) {
-      setAnswers((a) => ({
-        ...a,
-        time: { ...a.time, [step.key]: DEFAULT_TIME },
-      }));
-    }
-  }, [step, answers.time]);
-
   const canContinue = useMemo(() => {
     if (!requiresInput(step)) return true;
     if (step.type === "single") return !!answers.single[step.key];
     if (step.type === "multi")
       return (answers.multi[step.key]?.length ?? 0) > 0;
-    if (step.type === "time") return !!answers.time[step.key];
+    // Time step: TimePickerInline always shows a valid value (DEFAULT_TIME
+    // when nothing is set), so the step is considered complete by default.
+    if (step.type === "time") return true;
     return true;
   }, [answers, step]);
 
@@ -157,15 +148,7 @@ export default function Onboarding() {
 
       <View style={styles.footer}>
         <Button3D
-          label={
-            index === total - 1
-              ? "Let's go"
-              : step.type === "fact" ||
-                  step.type === "gratitude" ||
-                  step.type === "social"
-                ? "Continue"
-                : "Continue"
-          }
+          label={index === total - 1 ? "Let's go" : "Continue"}
           onPress={handleContinue}
           disabled={!canContinue}
           testID="onboarding-continue-button"

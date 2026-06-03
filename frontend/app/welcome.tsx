@@ -1,5 +1,4 @@
-// Welcome screen — first dark-themed surface a user sees after the splash.
-// Renders mascot hero + headline + Continue button + legal footer links.
+// Welcome screen — lean copy, cream background, hero illustration.
 
 import React from "react";
 import {
@@ -16,10 +15,7 @@ import { useRouter } from "expo-router";
 import Button3D from "@/src/components/Button3D";
 import { colors, fonts, space, type } from "@/src/theme";
 
-// Apple's standard EULA (auto-applied when a developer doesn't provide one).
-// Source: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 const TOS_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
-// Placeholder privacy URL — replace once a hosted page is live.
 const PRIVACY_URL = "https://www.apple.com/legal/privacy/en-ww/";
 
 export default function Welcome() {
@@ -33,19 +29,15 @@ export default function Welcome() {
     >
       <View style={styles.heroWrap}>
         <Image
-          source={require("../assets/images/mascot-splash.png")}
+          source={require("../assets/images/onboarding/welcome.png")}
           style={styles.hero}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.eyebrow}>welcome to</Text>
         <Text style={styles.title}>charrpy</Text>
-        <Text style={styles.subtitle}>
-          The alarm that makes you actually get up. Beat a quick challenge to
-          silence it — and finally win the morning.
-        </Text>
+        <Text style={styles.subtitle}>Wake up. Win mornings.</Text>
       </View>
 
       <View style={styles.footer}>
@@ -77,45 +69,31 @@ export default function Welcome() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  safe: { flex: 1, backgroundColor: colors.background },
   heroWrap: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: colors.primary,
-    overflow: "hidden",
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-  },
-  hero: { width: "100%", height: "100%" },
-  content: {
     flex: 1,
-    paddingHorizontal: space.lg,
-    paddingTop: space.xl,
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: space.xl,
+    paddingTop: space.xl,
   },
-  eyebrow: {
-    ...type.body,
-    fontFamily: fonts.medium,
-    color: colors.textMuted,
-    textTransform: "lowercase",
-    letterSpacing: 1,
-    marginBottom: space.xs,
+  hero: { width: "100%", height: "100%", maxHeight: 360 },
+  content: {
+    paddingHorizontal: space.lg,
+    paddingBottom: space.lg,
+    alignItems: "center",
   },
   title: {
     ...type.display,
     color: colors.primary,
     textTransform: "lowercase",
-    marginBottom: space.md,
+    marginBottom: space.xs,
   },
   subtitle: {
     ...type.h3,
     color: colors.textMain,
-    fontFamily: fonts.regular,
-    opacity: 0.85,
+    fontFamily: fonts.medium,
+    textAlign: "center",
   },
   footer: {
     paddingHorizontal: space.lg,

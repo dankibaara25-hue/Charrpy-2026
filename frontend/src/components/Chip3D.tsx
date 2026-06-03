@@ -1,5 +1,6 @@
-// Selectable option chip with Duolingo-style 3D bottom border.
-// Used for single-choice and multi-choice onboarding questions.
+// Selectable option chip with Duolingo-style 3D bottom border. Tuned for
+// the cream background — strong dark border + bottom shadow when idle so
+// the depth is visible at all times.
 
 import React, { useState } from "react";
 import {
@@ -36,9 +37,10 @@ export const Chip3D: React.FC<Chip3DProps> = ({
 }) => {
   const [pressed, setPressed] = useState(false);
 
-  const bg = selected ? "rgba(255, 149, 0, 0.12)" : colors.surface;
-  const borderColor = selected ? colors.primary : colors.surface;
-  const bottomColor = selected ? colors.primaryDark : colors.surfaceShadow;
+  const bg = selected ? "#FFE3BD" : colors.surface;
+  const borderColor = selected ? colors.primary : colors.shadow;
+  const bottomColor = selected ? colors.primaryDark : colors.shadow;
+  const labelColor = colors.textMain;
 
   return (
     <Pressable
@@ -63,30 +65,19 @@ export const Chip3D: React.FC<Chip3DProps> = ({
           },
         ]}
       >
-        <Text
-          style={[
-            styles.label,
-            { color: selected ? colors.textMain : colors.textMain },
-          ]}
-        >
-          {label}
-        </Text>
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
         <View
           style={[
             styles.indicator,
             multi ? styles.indicatorSquare : styles.indicatorRound,
             {
-              borderColor: selected ? colors.primary : colors.surfaceHighlight,
+              borderColor: selected ? colors.primary : colors.shadow,
               backgroundColor: selected ? colors.primary : "transparent",
             },
           ]}
         >
           {selected ? (
-            <Ionicons
-              name={multi ? "checkmark" : "checkmark"}
-              size={16}
-              color={colors.textMain}
-            />
+            <Ionicons name="checkmark" size={16} color={colors.textInverse} />
           ) : null}
         </View>
       </View>
@@ -98,18 +89,17 @@ const styles = StyleSheet.create({
   wrapper: { width: "100%", marginBottom: 12 },
   inner: {
     borderRadius: radius.lg,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     borderWidth: 2,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 64,
+    minHeight: 60,
   },
   label: {
     fontFamily: fonts.semibold,
     fontSize: 16,
-    color: colors.textMain,
     flex: 1,
     paddingRight: 12,
   },

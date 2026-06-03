@@ -1,22 +1,29 @@
-// Charrpy design tokens — sourced from /app/design_guidelines.json.
-// Keep this file the single source of truth for colors, typography, and spacing.
+// Charrpy design tokens — sourced from /app/design_guidelines.json with a
+// post-MVP refresh to a warm cream palette so the Duolingo-style 3D depth
+// reads strongly. Single source of truth for colors, typography, and spacing.
 
 export const colors = {
-  background: "#141416",
-  surface: "#222226",
-  surfaceHighlight: "#2E2E32",
-  surfaceShadow: "#1A1A1D",
+  // Warm cream surface — chosen to make orange accents and 3D shadows pop.
+  background: "#FFF6E5",
+  surface: "#FFFFFF",
+  surfaceMuted: "#FFEFD0",
+  // Strong contrast bottom border used by every 3D control so the depth
+  // is visible on the cream background.
+  shadow: "#2A1A0A",
+  shadowSoft: "#C9A77E",
   primary: "#FF9500",
-  primaryDark: "#CC7700",
+  primaryDark: "#B86600",
   primaryLight: "#FFB74D",
   gradientStart: "#FF9500",
   gradientEnd: "#FFC000",
-  textMain: "#FDFDFD",
-  textMuted: "#A0A0A5",
-  textInverse: "#141416",
-  track: "#FFFFFF",
-  danger: "#FF3B30",
-  success: "#34C759",
+  textMain: "#2A1A0A",
+  textMuted: "#7A5C3F",
+  textInverse: "#FFFFFF",
+  // Onboarding progress bar track — white feels too washed-out on cream,
+  // so use a soft amber tint.
+  track: "#F2DCB0",
+  danger: "#E03B2C",
+  success: "#2A9D47",
 } as const;
 
 export const fonts = {
@@ -38,20 +45,7 @@ export const type = {
 } as const;
 
 export const space = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 40,
-  xxxl: 48,
-  massive: 64,
+  xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 40, xxxl: 48, massive: 64,
 } as const;
 
-export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  pill: 999,
-} as const;
+export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;

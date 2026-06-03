@@ -1,7 +1,4 @@
-// Charrpy onboarding flow — single screen managing all 15 steps locally so
-// we keep navigation state in one place (rather than 15 routes). Step state
-// is committed to storage on completion so we can later branch the entry
-// route based on whether the user has finished onboarding.
+// Charrpy onboarding flow — single screen managing all 15 steps locally.
 
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -15,7 +12,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeInRight,
   FadeOutLeft,
@@ -61,8 +57,6 @@ export default function Onboarding() {
     if (step.type === "single") return !!answers.single[step.key];
     if (step.type === "multi")
       return (answers.multi[step.key]?.length ?? 0) > 0;
-    // Time step: TimePickerInline always shows a valid value (DEFAULT_TIME
-    // when nothing is set), so the step is considered complete by default.
     if (step.type === "time") return true;
     return true;
   }, [answers, step]);
@@ -80,7 +74,6 @@ export default function Onboarding() {
       setIndex((i) => i + 1);
       return;
     }
-    // Final commit — persist & route on to avatar selection.
     await storage.setItem(
       "charrpy.onboarding.answers",
       JSON.stringify(answers),
@@ -109,7 +102,6 @@ export default function Onboarding() {
       edges={["top", "bottom"]}
       testID="onboarding-screen"
     >
-      {/* Header — back + progress */}
       <View style={styles.header}>
         <Pressable
           onPress={handleBack}
@@ -127,8 +119,8 @@ export default function Onboarding() {
 
       <Animated.View
         key={index}
-        entering={FadeInRight.duration(240)}
-        exiting={FadeOutLeft.duration(160)}
+        entering={FadeInRight.duration(220)}
+        exiting={FadeOutLeft.duration(140)}
         style={styles.body}
       >
         <ScrollView
@@ -175,16 +167,13 @@ const StepView: React.FC<StepViewProps> = ({
   if (step.type === "info") {
     return (
       <View style={styles.center}>
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.iconBubble}
-        >
-          <Ionicons name={step.icon} size={56} color={colors.textMain} />
-        </LinearGradient>
-        <Text style={styles.title}>{step.title}</Text>
-        <Text style={styles.subtitle}>{step.subtitle}</Text>
+        <View style={styles.artWrap}>
+          <Image source={step.art} style={styles.art} resizeMode="contain" />
+        </View>
+        <Text style={[styles.title, styles.titleCentered]}>{step.title}</Text>
+        <Text style={[styles.subtitle, styles.subtitleCentered]}>
+          {step.subtitle}
+        </Text>
       </View>
     );
   }
@@ -245,9 +234,6 @@ const StepView: React.FC<StepViewProps> = ({
     return (
       <View>
         <Text style={styles.title}>{step.title}</Text>
-        {step.subtitle ? (
-          <Text style={styles.subtitle}>{step.subtitle}</Text>
-        ) : null}
         <View style={{ marginTop: space.xl }}>
           <TimePickerInline
             value={answers.time[step.key] ?? DEFAULT_TIME}
@@ -261,18 +247,11 @@ const StepView: React.FC<StepViewProps> = ({
   if (step.type === "fact") {
     return (
       <View style={styles.center}>
-        <View style={styles.factMascotWrap}>
-          <Image
-            source={require("../assets/images/mascot-splash.png")}
-            style={styles.factMascot}
-            resizeMode="cover"
-          />
+        <View style={styles.factBadge}>
+          <Ionicons name="bulb" size={36} color={colors.textInverse} />
         </View>
         <Text style={styles.eyebrow}>{step.title}</Text>
         <Text style={styles.factQuote}>&ldquo;{step.quote}&rdquo;</Text>
-        {step.source ? (
-          <Text style={styles.factSource}>— {step.source}</Text>
-        ) : null}
       </View>
     );
   }
@@ -285,7 +264,9 @@ const StepView: React.FC<StepViewProps> = ({
         <View style={{ marginTop: space.lg, gap: 12 }}>
           {step.testimonials.map((t) => (
             <View key={t.name} style={styles.testimonialCard}>
-              <Text style={styles.testimonialQuote}>&ldquo;{t.quote}&rdquo;</Text>
+              <Text style={styles.testimonialQuote}>
+                &ldquo;{t.quote}&rdquo;
+              </Text>
               <Text style={styles.testimonialName}>{t.name}</Text>
             </View>
           ))}
@@ -297,20 +278,13 @@ const StepView: React.FC<StepViewProps> = ({
   if (step.type === "gratitude") {
     return (
       <View style={styles.center}>
-        <View style={styles.factMascotWrap}>
-          <Image
-            source={require("../assets/images/mascot-splash.png")}
-            style={styles.factMascot}
-            resizeMode="cover"
-          />
+        <View style={styles.artWrap}>
+          <Image source={step.art} style={styles.art} resizeMode="contain" />
         </View>
-        <Text style={styles.title}>{step.title}</Text>
-        <Text style={styles.subtitle}>{step.subtitle}</Text>
-        <View style={styles.heartRow}>
-          <Ionicons name="heart" size={20} color={colors.primary} />
-          <Ionicons name="heart" size={28} color={colors.primary} />
-          <Ionicons name="heart" size={20} color={colors.primary} />
-        </View>
+        <Text style={[styles.title, styles.titleCentered]}>{step.title}</Text>
+        <Text style={[styles.subtitle, styles.subtitleCentered]}>
+          {step.subtitle}
+        </Text>
       </View>
     );
   }
@@ -318,16 +292,13 @@ const StepView: React.FC<StepViewProps> = ({
   // commitment
   return (
     <View style={styles.center}>
-      <LinearGradient
-        colors={[colors.gradientStart, colors.gradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.iconBubble}
-      >
-        <Ionicons name="sunny" size={56} color={colors.textMain} />
-      </LinearGradient>
-      <Text style={styles.title}>{step.title}</Text>
-      <Text style={styles.subtitle}>{step.subtitle}</Text>
+      <View style={styles.factBadge}>
+        <Ionicons name="sunny" size={40} color={colors.textInverse} />
+      </View>
+      <Text style={[styles.title, styles.titleCentered]}>{step.title}</Text>
+      <Text style={[styles.subtitle, styles.subtitleCentered]}>
+        {step.subtitle}
+      </Text>
     </View>
   );
 };
@@ -359,27 +330,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: space.xl,
+    paddingTop: space.md,
   },
-  iconBubble: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  artWrap: {
+    width: "100%",
+    aspectRatio: 1,
+    maxHeight: 320,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: space.xl,
+    marginBottom: space.lg,
   },
+  art: { width: "100%", height: "100%" },
   title: {
     ...type.h1,
     color: colors.textMain,
-    textAlign: "left",
-    marginBottom: space.sm,
+    marginBottom: space.xs,
   },
+  titleCentered: { textAlign: "center" },
   subtitle: {
     ...type.h3,
     color: colors.textMuted,
     fontFamily: fonts.regular,
   },
+  subtitleCentered: { textAlign: "center" },
   eyebrow: {
     ...type.caption,
     color: colors.primary,
@@ -388,35 +361,33 @@ const styles = StyleSheet.create({
     marginBottom: space.md,
     textAlign: "center",
   },
-  factMascotWrap: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: "hidden",
+  factBadge: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: space.lg,
+    borderBottomWidth: 6,
+    borderBottomColor: colors.primaryDark,
   },
-  factMascot: { width: "100%", height: "100%" },
   factQuote: {
     fontFamily: fonts.semibold,
-    fontSize: 24,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 30,
     color: colors.textMain,
     textAlign: "center",
     paddingHorizontal: space.md,
-  },
-  factSource: {
-    ...type.caption,
-    color: colors.textMuted,
-    marginTop: space.md,
-    textAlign: "center",
   },
   testimonialCard: {
     backgroundColor: colors.surface,
     padding: space.md,
     borderRadius: radius.lg,
+    borderWidth: 2,
+    borderColor: colors.shadow,
     borderBottomWidth: 4,
-    borderBottomColor: colors.surfaceShadow,
+    borderBottomColor: colors.shadow,
   },
   testimonialQuote: {
     ...type.body,
@@ -427,12 +398,6 @@ const styles = StyleSheet.create({
   testimonialName: {
     ...type.caption,
     color: colors.primary,
-  },
-  heartRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: space.lg,
   },
   footer: {
     paddingHorizontal: space.lg,

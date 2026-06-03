@@ -1,6 +1,5 @@
-// Avatar selection screen — final step after onboarding's commitment slide
-// and before the main app shell. Grid of 19 illustrated avatars, single
-// selection, Duolingo-style 3D selected treatment, persisted to local storage.
+// Avatar selection screen — lean copy on a cream background. Duolingo-style
+// 3D selection treatment with strong dark border so the depth pops.
 
 import React, { useState } from "react";
 import {
@@ -35,16 +34,10 @@ export default function AvatarSelect() {
   const tileSize =
     (width - SCREEN_PADDING * 2 - GUTTER * (COLUMNS - 1)) / COLUMNS;
 
-  const handleSelect = (id: string) => {
-    setSelected(id);
-    Haptics.selectionAsync().catch(() => {});
-  };
-
   const handleContinue = async () => {
     if (!selected) return;
     await storage.setItem("charrpy.avatar.id", selected);
-    await storage.setItem("charrpy.onboarding.completed", true);
-    router.replace("/onboarding-complete");
+    router.push("/nickname");
   };
 
   return (
@@ -62,15 +55,12 @@ export default function AvatarSelect() {
         >
           <Ionicons name="chevron-back" size={28} color={colors.textMain} />
         </Pressable>
-        <View style={styles.headerSpacer} />
+        <View style={{ flex: 1 }} />
       </View>
 
       <View style={styles.intro}>
         <Text style={styles.title}>Pick your avatar</Text>
-        <Text style={styles.subtitle}>
-          This is the face you&apos;ll wake up to. You can change it anytime in
-          settings.
-        </Text>
+        <Text style={styles.subtitle}>One tap.</Text>
       </View>
 
       <ScrollView
@@ -78,19 +68,19 @@ export default function AvatarSelect() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
-          {AVATARS.map((avatar) => {
-            const isSelected = selected === avatar.id;
-            return (
-              <AvatarTile
-                key={avatar.id}
-                source={avatar.source}
-                size={tileSize}
-                selected={isSelected}
-                onPress={() => handleSelect(avatar.id)}
-                testID={`avatar-tile-${avatar.id}`}
-              />
-            );
-          })}
+          {AVATARS.map((a) => (
+            <AvatarTile
+              key={a.id}
+              source={a.source}
+              size={tileSize}
+              selected={selected === a.id}
+              onPress={() => {
+                setSelected(a.id);
+                Haptics.selectionAsync().catch(() => {});
+              }}
+              testID={`avatar-tile-${a.id}`}
+            />
+          ))}
         </View>
       </ScrollView>
 
@@ -122,7 +112,6 @@ const AvatarTile: React.FC<AvatarTileProps> = ({
   testID,
 }) => {
   const [pressed, setPressed] = useState(false);
-
   return (
     <Pressable
       onPress={onPress}
@@ -137,10 +126,8 @@ const AvatarTile: React.FC<AvatarTileProps> = ({
           {
             width: size,
             height: size,
-            borderColor: selected ? colors.primary : colors.surface,
-            borderBottomColor: selected
-              ? colors.primaryDark
-              : colors.surfaceShadow,
+            borderColor: selected ? colors.primary : colors.shadow,
+            borderBottomColor: selected ? colors.primaryDark : colors.shadow,
             borderBottomWidth: pressed ? 0 : DEPTH,
             marginTop: pressed ? DEPTH : 0,
             backgroundColor: selected ? colors.primary : colors.surface,
@@ -150,7 +137,7 @@ const AvatarTile: React.FC<AvatarTileProps> = ({
         <Image source={source} style={styles.image} resizeMode="cover" />
         {selected ? (
           <View style={styles.check}>
-            <Ionicons name="checkmark" size={18} color={colors.textMain} />
+            <Ionicons name="checkmark" size={18} color={colors.textInverse} />
           </View>
         ) : null}
       </View>
@@ -172,13 +159,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerSpacer: { flex: 1 },
   intro: {
     paddingHorizontal: SCREEN_PADDING,
     paddingTop: space.sm,
-    paddingBottom: space.lg,
+    paddingBottom: space.md,
   },
-  title: { ...type.h1, color: colors.textMain, marginBottom: space.sm },
+  title: { ...type.h1, color: colors.textMain, marginBottom: 2 },
   subtitle: {
     ...type.body,
     color: colors.textMuted,

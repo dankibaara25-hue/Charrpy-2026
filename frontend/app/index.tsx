@@ -1,6 +1,6 @@
-// Splash screen for Charrpy.
-// Shows the mascot face + lowercase wordmark over the brand-orange background,
-// then auto-routes to the welcome screen after 3s.
+// Splash screen. Holds the brand frame for ~3s while we wait on the auth
+// context, then routes to /welcome for new users and /(main) for returning
+// anonymous users who already have a Firebase session.
 
 import { useEffect } from "react";
 import { Image, StyleSheet, View } from "react-native";
@@ -13,11 +13,14 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
+import { useAuth } from "@/src/context/AuthContext";
+
 const SPLASH_DURATION_MS = 3000;
 const BRAND_ORANGE = "#FF9500";
 
 export default function SplashIndex() {
   const router = useRouter();
+  const { user, initializing } = useAuth();
   const opacity = useSharedValue(0);
 
   useEffect(() => {
@@ -25,11 +28,15 @@ export default function SplashIndex() {
       duration: 600,
       easing: Easing.out(Easing.cubic),
     });
+  }, [opacity]);
+
+  useEffect(() => {
+    if (initializing) return;
     const t = setTimeout(() => {
-      router.replace("/welcome");
+      router.replace(user ? "/(main)" : "/welcome");
     }, SPLASH_DURATION_MS);
     return () => clearTimeout(t);
-  }, [opacity, router]);
+  }, [initializing, user, router]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -54,12 +61,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  imageWrap: {
-    width: "100%",
-    height: "100%",
-  },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
+  imageWrap: { width: "100%", height: "100%" },
+  image: { width: "100%", height: "100%" },
 });

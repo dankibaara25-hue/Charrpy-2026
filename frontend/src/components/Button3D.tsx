@@ -1,5 +1,7 @@
 // Duolingo-style 3D button. Thick bottom border compresses on press for
-// authentic "depress" feedback. Keeps a constant footprint via marginTop.
+// authentic "depress" feedback. Tuned for the cream background — uses a
+// strong dark-brown bottom shadow so the depth is visible on both primary
+// (orange) and secondary (white) variants, active or not.
 
 import React, { useState } from "react";
 import {
@@ -39,15 +41,15 @@ export const Button3D: React.FC<Button3DProps> = ({
 
   const palette = disabled
     ? {
-        bg: colors.surfaceHighlight,
-        border: colors.surfaceShadow,
+        bg: "#E8D9BD",
+        border: colors.shadowSoft,
         text: colors.textMuted,
       }
     : variant === "primary"
-      ? { bg: colors.primary, border: colors.primaryDark, text: colors.textMain }
+      ? { bg: colors.primary, border: colors.primaryDark, text: colors.textInverse }
       : {
           bg: colors.surface,
-          border: colors.surfaceShadow,
+          border: colors.shadow,
           text: colors.textMain,
         };
 
@@ -56,13 +58,12 @@ export const Button3D: React.FC<Button3DProps> = ({
     setPressed(true);
     Haptics.selectionAsync().catch(() => {});
   };
-  const handlePressOut = () => setPressed(false);
 
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
       onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+      onPressOut={() => setPressed(false)}
       testID={testID}
       style={[styles.wrapper, style]}
     >
@@ -74,9 +75,11 @@ export const Button3D: React.FC<Button3DProps> = ({
             borderBottomColor: palette.border,
             borderBottomWidth: pressed ? 0 : DEPTH,
             marginTop: pressed ? DEPTH : 0,
-            borderWidth: variant === "secondary" ? 2 : 0,
-            borderColor: variant === "secondary" ? palette.border : "transparent",
-            opacity: disabled ? 0.7 : 1,
+            borderColor: variant === "secondary" ? colors.shadow : palette.border,
+            borderTopWidth: 2,
+            borderLeftWidth: 2,
+            borderRightWidth: 2,
+            opacity: disabled ? 0.85 : 1,
           },
         ]}
       >
@@ -87,9 +90,7 @@ export const Button3D: React.FC<Button3DProps> = ({
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    width: "100%",
-  },
+  wrapper: { width: "100%" },
   inner: {
     borderRadius: radius.lg,
     paddingVertical: 16,

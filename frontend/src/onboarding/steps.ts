@@ -1,19 +1,15 @@
-// Centralised onboarding step config for Charrpy.
-// 15 steps mixing info, single/multi choice, time picker, fun facts, social
-// proof, gratitude, and a final commitment slide. Fun-fact slides are spaced
-// out (steps 6, 9, 13) so they break monotony without ever appearing back to
-// back. Age and gender are intentionally omitted per product spec.
+// Lean onboarding step list. Subtitles trimmed to <= 6 words.
+// Custom illustrations from /app/frontend/assets/images/onboarding/ are
+// mapped to info + gratitude steps by `art` key.
+
+import { ImageSourcePropType } from "react-native";
 
 export type OnboardingStep =
   | {
       type: "info";
       title: string;
       subtitle: string;
-      icon:
-        | "alarm-outline"
-        | "musical-notes-outline"
-        | "camera-outline"
-        | "trophy-outline";
+      art: ImageSourcePropType;
     }
   | {
       type: "single";
@@ -39,7 +35,6 @@ export type OnboardingStep =
       type: "fact";
       title: string;
       quote: string;
-      source?: string;
     }
   | {
       type: "social";
@@ -51,6 +46,7 @@ export type OnboardingStep =
       type: "gratitude";
       title: string;
       subtitle: string;
+      art: ImageSourcePropType;
     }
   | {
       type: "commitment";
@@ -58,139 +54,125 @@ export type OnboardingStep =
       subtitle: string;
     };
 
+const SET_ALARM = require("../../assets/images/onboarding/set-alarm.png");
+const RINGTONE = require("../../assets/images/onboarding/ringtone.png");
+const WIN_THE_DAY = require("../../assets/images/onboarding/win-the-day.png");
+const THANK_YOU = require("../../assets/images/onboarding/thank-you.png");
+
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     type: "info",
     title: "Set the time",
-    subtitle: "Pick when you want to actually be up — not just dream about it.",
-    icon: "alarm-outline",
+    subtitle: "Pick your wake-up.",
+    art: SET_ALARM,
   },
   {
     type: "info",
     title: "Select a ringtone",
-    subtitle: "Choose your wake-up vibe, from gentle to absolutely chaotic.",
-    icon: "musical-notes-outline",
+    subtitle: "Choose your vibe.",
+    art: RINGTONE,
   },
   {
     type: "info",
     title: "Complete the action",
-    subtitle:
-      "Solve a quick math, scan a barcode, or snap a photo — that's how the alarm dies.",
-    icon: "camera-outline",
+    subtitle: "Beat a quick challenge.",
+    // Re-use set-alarm art so step 3 has visual continuity until a dedicated
+    // illustration ships.
+    art: SET_ALARM,
   },
   {
     type: "info",
     title: "Win the day",
-    subtitle: "Stack streaks, climb the board, and own your mornings.",
-    icon: "trophy-outline",
+    subtitle: "Streaks and rewards.",
+    art: WIN_THE_DAY,
   },
   {
     type: "single",
     key: "struggle",
-    title: "What's your biggest morning struggle?",
-    subtitle: "We'll tune Charrpy to fight it for you.",
+    title: "Biggest morning struggle?",
     options: [
-      "Hitting snooze endlessly",
+      "Hitting snooze",
       "Doom-scrolling in bed",
-      "Feeling too groggy to move",
-      "Zero morning motivation",
+      "Too groggy",
+      "Zero motivation",
     ],
   },
   {
     type: "fact",
     title: "Did you know?",
-    quote:
-      "It takes around 66 days, not 21, to lock in a real habit. We'll be right there with you.",
-    source: "University College London study",
+    quote: "It takes about 66 days to lock in a real habit.",
   },
   {
     type: "single",
     key: "snoozes",
-    title: "Honestly — how often do you snooze?",
+    title: "How often do you snooze?",
     options: [
-      "Never, I'm a pro",
-      "1 or 2 taps",
-      "3 to 5 taps",
-      "I set 10 alarms and still fail",
+      "Never",
+      "1–2 times",
+      "3–5 times",
+      "I set 10 alarms",
     ],
   },
   {
     type: "time",
     key: "wake_time",
-    title: "What time do you want to wake up?",
-    subtitle: "We'll use this as your starting alarm.",
+    title: "What time to wake up?",
   },
   {
     type: "fact",
     title: "Time flex",
-    quote:
-      "Studies link consistent wake times to better focus, mood, and even higher earnings over a career.",
-    source: "Journal of Sleep Research",
+    quote: "Consistent wake times boost focus and mood.",
   },
   {
     type: "multi",
     key: "goals",
-    title: "What are your morning goals?",
-    subtitle: "Pick as many as you like.",
+    title: "Your morning goals?",
+    subtitle: "Pick any.",
     options: [
-      "Be more productive",
-      "Move my body / workout",
-      "Eat a real breakfast",
-      "Stop rushing out the door",
-      "Have quiet time for myself",
+      "Be productive",
+      "Workout",
+      "Real breakfast",
+      "Stop rushing",
+      "Quiet time",
     ],
   },
   {
     type: "single",
     key: "challenge",
-    title: "Which wake-up challenge sounds best?",
-    subtitle: "You can change this anytime later.",
+    title: "Which challenge sounds best?",
     options: [
-      "Math equations — wake up the brain",
-      "Barcode scan — force me out of bed",
-      "Photo of something — fridge, sink, sun",
+      "Math equations",
+      "Barcode scan",
+      "Take a photo",
     ],
   },
   {
     type: "social",
     title: "You're in great company",
-    subtitle: "Thousands of early risers are already winning mornings.",
+    subtitle: "Thousands wake with Charrpy.",
     testimonials: [
-      {
-        name: "Maya, 27",
-        quote: "I haven't snoozed in 41 days. Wild.",
-      },
-      {
-        name: "Jordan, 33",
-        quote: "Math at 6am is rude. Effective, but rude.",
-      },
-      {
-        name: "Sam, 24",
-        quote: "The fridge photo challenge actually works.",
-      },
+      { name: "Maya, 27", quote: "41-day streak. Wild." },
+      { name: "Jordan, 33", quote: "Math at 6am is rude. And it works." },
+      { name: "Sam, 24", quote: "The fridge photo challenge slaps." },
     ],
   },
   {
     type: "fact",
-    title: "The snooze trap",
-    quote:
-      "Snoozing fragments your sleep cycle, which can leave you groggier than just getting up the first time.",
-    source: "Sleep Foundation",
+    title: "Snooze trap",
+    quote: "Snoozing fragments sleep and makes you groggier.",
   },
   {
     type: "gratitude",
     title: "Thanks for trusting us",
-    subtitle:
-      "Charrpy only works if you show up. We'll do our part — playful, kind, and a tiny bit annoying when it matters.",
+    subtitle: "We've got your mornings.",
+    art: THANK_YOU,
   },
   {
     type: "commitment",
-    title: "Ready to win your mornings?",
-    subtitle:
-      "Tap below to commit. Tomorrow's first win is already on the way.",
+    title: "Ready to win mornings?",
+    subtitle: "Let's set you up.",
   },
 ];
 
-// Required-input steps where Continue stays disabled until the user picks.
 export const requiresInput = (s: OnboardingStep): boolean =>
   s.type === "single" || s.type === "multi" || s.type === "time";

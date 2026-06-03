@@ -1,0 +1,48 @@
+{
+  "summary": "Frontend-only test of Charrpy auth + paywall flow on mobile viewport 390x844. Splash → welcome → 15-step onboarding → avatar-select → nickname all PASS visually and functionally. BLOCKER: Firebase signInAnonymously throws `auth/admin-restricted-operation` (HTTP 400) when CREATE ACCOUNT is tapped on /nickname, so the user can never reach /paywall, /(main), or be tested for cold-restart persistence. This is a Firebase Console mis-configuration on the charrpy-2026 project: Anonymous Authentication is not enabled under Authentication → Sign-in method. The web SDK + initialization code in src/lib/firebase.ts is correct. Once Anonymous is toggled on in the console no code change is needed and the rest of the flow should pass. Welcome screen: cream BG, custom welcome illustration (transparent BG), lowercase orange 'charrpy', 'Wake up. Win mornings.' subtitle, orange CONTINUE with 3D border, TOS + Privacy links — all rendered correctly. Onboarding step 1 'Set the time' shows the new set-alarm illustration (chick with watch, no black bg) with lean subtitle 'Pick your wake-up.'; step 4 'Win the day' shows trophy chick with 'Streaks and rewards.'; step 14 gratitude renders 'Thanks for trusting us'. Step 15 commitment label confirmed as 'LET'S GO'. Chips render with 3D dark-brown bottom border on cream BG, both selected and unselected. Avatar-select shows exactly 19 tiles in a 3-column grid, CONTINUE is correctly gated on a selection. Nickname screen shows the chosen avatar in a 3D bordered circle, lean copy 'Pick a nickname' + 'Friends will see this.', the input field with strong 3D bottom border, the validation regex correctly blocks short / invalid input (Create Account disabled), and a clean inline error 'Couldn't create your account. Please try again.' renders when sign-in fails. Two non-blocking RN console warnings persist from iteration_1 (pointerEvents deprecation in TimePickerInline and the setState-in-render warning on the time step) — both still unfixed by main agent.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "nickname → Firebase anon sign-in → paywall",
+        "issue": "signInAnonymously() throws FirebaseError auth/admin-restricted-operation (POST /v1/accounts:signUp returns 400). Anonymous Authentication is NOT enabled in the Firebase console for project charrpy-2026. Enable it under Authentication → Sign-in method → Anonymous → Enable. Code in /app/frontend/src/lib/firebase.ts and /app/frontend/app/nickname.tsx is correct; this is a remote project-config issue, not a code bug.",
+        "affected_testIDs": ["nickname-create-button", "paywall-screen", "main-home-screen"]
+      }
+    ],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "TimePickerInline",
+        "issue": "Deprecation warning still present: 'props.pointerEvents is deprecated. Use style.pointerEvents'. Reference: /app/frontend/src/components/TimePickerInline.tsx:83. Reported in iteration_1, not yet fixed."
+      },
+      {
+        "component": "Onboarding (time step)",
+        "issue": "React warning 'Cannot update a component (Onboarding) while rendering a different component (StepView)' still fires when entering the time step. Reference: /app/frontend/app/onboarding.tsx:61-68. Reported in iteration_1, not yet fixed."
+      }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_2.json", "/app/test_reports/iteration_1.json"],
+  "action_items": [
+    "[CRITICAL — REMOTE CONFIG, NOT CODE] In the Firebase Console for project charrpy-2026 → Build → Authentication → Sign-in method, click 'Anonymous' and toggle Enable. Without this, the entire post-onboarding flow (sign-in → paywall → main → persistence) is blocked.",
+    "After enabling Anonymous in the Firebase console, re-run the same end-to-end test — no code change is required.",
+    "Carry-over from iteration_1: replace `<View pointerEvents=\"none\" />` with `style={{ pointerEvents: 'none', ... }}` in /app/frontend/src/components/TimePickerInline.tsx (~line 83).",
+    "Carry-over from iteration_1: investigate the setState-during-render warning on the time-picker step in /app/frontend/app/onboarding.tsx (~L61-68).",
+    "Optional polish (not blocking): the splash captured as solid orange in our screenshot — the mascot image rendered with resizeMode='cover' at full viewport may be clipping the mascot off-frame. Consider resizeMode='contain' so the mascot is centered and visible at 390x844."
+  ],
+  "critical_code_review_comments": [
+    "src/lib/firebase.ts correctly guards initializeApp with getApps() and falls back to getAuth on Fast Refresh. Web vs RN persistence split is correct. Hardcoding the firebase config in source is acceptable for client-side web/RN keys (these are public by design) but could optionally be moved to EXPO_PUBLIC_FIREBASE_* env vars.",
+    "AuthContext.tsx properly subscribes once via onAuthStateChanged and exposes {user, initializing} — splash gates correctly on initializing before deciding /welcome vs /(main).",
+    "nickname.tsx validation: trims, enforces length 2-16 and regex [A-Za-z0-9_.-]+. maxLength on the TextInput is MAX+4=20 which lets users type past the cap before the regex rejects — minor UX nit, could tighten to MAX (16).",
+    "paywall.tsx is correctly flagged as a stub at the top of the file; both buttons route to /(main) as specified.",
+    "(main)/index.tsx Reset button correctly signs out, clears all 5 storage keys, and routes back to /welcome. Good cleanup.",
+    "All screens consistently use SafeAreaView with edges=['top','bottom'] and pull colours from src/theme — no hardcoded colour leaks."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "70% (7/10 testable scenarios passed; 3 blocked by Firebase Anonymous not enabled on the remote project)"},
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Firebase Anonymous Auth on project charrpy-2026 must be enabled in the Firebase Console BEFORE the next test run, otherwise CREATE ACCOUNT will always fail with auth/admin-restricted-operation. Once enabled, the playwright script saved in this iteration (see thought log) will validate the remaining flows: nickname submit → /paywall → 'Start free trial' → /(main) with nickname + avatar + truncated UID pill → 'Reset & start over' → /welcome, plus a page.reload() cold-restart that should route directly to /(main) because Firebase auth state is persisted to AsyncStorage. Stable testIDs: splash-screen, welcome-screen, welcome-continue-button, welcome-tos-link, welcome-privacy-link, onboarding-screen, onboarding-back-button, onboarding-progress-bar, onboarding-continue-button, onboarding-option-<key>-<slug>, avatar-select-screen, avatar-select-back-button, avatar-tile-<id> (19 of them), avatar-select-continue-button, nickname-screen, nickname-input, nickname-create-button, nickname-back-button, paywall-screen, paywall-start-button, paywall-skip-button, main-home-screen, main-reset-button. Avatar tiles are 3-column; clicking enables CONTINUE.",
+  "rca_of_issue": "ROOT CAUSE: Firebase project charrpy-2026 has not had the Anonymous sign-in provider enabled in the Firebase Console. The web SDK call signInAnonymously(auth) hits the Identity Toolkit endpoint accounts:signUp, which returns HTTP 400 with errorMessage 'ADMIN_ONLY_OPERATION'. The Firebase Web SDK surfaces this as FirebaseError code 'auth/admin-restricted-operation'. REPRODUCTION: navigate to https://wake-up-challenge-5.preview.emergentagent.com → wait for splash → on /welcome tap CONTINUE → click through onboarding (answering required steps) → on /avatar-select pick any tile and CONTINUE → on /nickname type any 2-16 char alphanumeric (e.g. 'test_user.01') → tap CREATE ACCOUNT → observe inline error 'Couldn't create your account. Please try again.' and console error 'auth/admin-restricted-operation'. MITIGATION: enable Anonymous provider in Firebase Console → Authentication → Sign-in method → Anonymous → Enable → Save. No app code or env changes are needed; the existing initialization and call sites are correct."
+}

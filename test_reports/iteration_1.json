@@ -1,0 +1,40 @@
+{
+  "summary": "Frontend-only smoke test of Charrpy onboarding flow (M1 scope) on mobile viewport 390x844. Splash auto-routes to /welcome after ~3s. Welcome screen renders mascot, headline 'welcome to'/'charrpy', subtitle, orange Continue button, and TOS + Privacy legal links with correct testIDs. Tapping welcome-continue-button navigates to /onboarding. All 15 onboarding steps traversed: 4 info slides advance freely; single-choice (struggle, snoozes, challenge) renders correct option chips with the expected testID pattern onboarding-option-<key>-<slug>; time picker renders 3 wheels + AM/PM toggle (testIDs time-picker-hours/minutes/am/pm) and Continue enabled from default 7:00 AM; multi-choice (goals) renders 5 chips; social proof shows all 3 testimonials (Maya 27, Jordan 33, Sam 24); gratitude shows 'Thanks for trusting us'; final commitment button label is 'LET'S GO' and routes to /onboarding-complete. Progress bar visibly increases (16.9px → 254px). Back-arrow → /welcome from step 1 was not exercised in script but the code path (router.back when index===0) is correct. Two non-blocking console issues detected (see react_native_issues).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "TimePickerInline",
+        "issue": "Deprecation warning: 'props.pointerEvents is deprecated. Use style.pointerEvents'. The selection-line overlay uses `<View pointerEvents=\"none\" ...>` which should be moved into the style prop. Reference: /app/frontend/src/components/TimePickerInline.tsx:83"
+      },
+      {
+        "component": "Onboarding",
+        "issue": "React warning 'Cannot update a component (Onboarding) while rendering a different component (StepView)' fires when entering the time step. Likely cause: the useEffect that hydrates DEFAULT_TIME runs on the same commit as StepView render; depending on FlatList initialScrollIndex behaviour, the wheel's onMomentumScrollEnd or initial layout can schedule a setState during render. Consider hydrating default time inside a useEffect with [step.key] only (not [step, answers.time]) or guarding the setAnswers inside a microtask. Reference: /app/frontend/app/onboarding.tsx:61-68"
+      }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_1.json"],
+  "action_items": [
+    "Replace `<View pointerEvents=\"none\" />` with `style={{ pointerEvents: 'none', ... }}` in TimePickerInline.tsx (line 83) to silence the RN deprecation warning.",
+    "Investigate the 'setState while rendering' warning fired when navigating to the time-picker step (onboarding.tsx useEffect at L61). Functionality still works but the warning is noisy in console.",
+    "Optional a11y: Button3D could surface accessibilityState={{disabled}} so disabled state is exposed via aria-disabled (currently disabled state is purely visual on web)."
+  ],
+  "critical_code_review_comments": [
+    "Welcome screen and all subsequent screens correctly wrap content in SafeAreaView with edges=['top','bottom'] — passes the strict SafeArea requirement.",
+    "Theme tokens (colors/fonts/space/radius) are correctly centralised in src/theme/index.ts and consumed throughout — no hardcoded colors leak in screens.",
+    "Onboarding state is local (single screen, 15 steps via index) per spec — not 15 routes. Storage persistence on final step uses '@/src/utils/storage' helper.",
+    "Button3D ternary on label at /app/frontend/app/onboarding.tsx:160-168 has three branches that all return 'Continue' on non-final steps — the inner ternary is dead code and can be simplified to: `index === total - 1 ? \"Let's go\" : \"Continue\"`.",
+    "Privacy URL is a placeholder (Apple privacy page) as called out in welcome.tsx:22 — replace before release.",
+    "Disabled state on Button3D is enforced via `onPress={disabled ? undefined : onPress}` which is correct functionally, but the rendered Pressable does not set accessibilityState — screen readers and Playwright cannot detect aria-disabled. Visual disabled palette renders correctly."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "M1 onboarding flow is fully working end-to-end on web preview. testIDs are reliable: splash-screen, welcome-screen, welcome-continue-button, welcome-tos-link, welcome-privacy-link, welcome-legal-text, onboarding-screen, onboarding-progress-bar, onboarding-back-button, onboarding-continue-button, onboarding-option-<key>-<slug>, time-picker-inline/hours/minutes/am/pm, onboarding-complete-screen. Splash takes 3s to auto-route; allow >=4s before interacting. Two minor console warnings remain (pointerEvents deprecation + setState-in-render in time step) — neither blocks UX.",
+  "rca_of_issue": "N/A — no failures encountered."
+}

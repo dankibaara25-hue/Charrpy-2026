@@ -1,0 +1,139 @@
+{
+  "theme": "Dark Gamified",
+  "archetype": "Vibrant Play (Dark Variant)",
+  "app_type": "mobile_web_app (React Native Expo)",
+  "global_rules": {
+    "safe_area": "STRICTLY apply SafeAreaProvider at the root and SafeAreaView for all screens. No content should render under notches or home indicators.",
+    "testing": "All interactive and key informational elements MUST include a 'data-testid' attribute (e.g., data-testid='continue-button').",
+    "icons": "Use @expo/vector-icons (FontAwesome5, Feather, or Ionicons) for UI adornments. No external image photos needed except the mascot.",
+    "components": "Always use React Native standard views and avoid any html-based rendering. Keep styles inline or via StyleSheet."
+  },
+  "colors": {
+    "background": "#141416",
+    "surface": "#222226",
+    "surface_highlight": "#2E2E32",
+    "primary": {
+      "main": "#FF9500",
+      "dark": "#CC7700",
+      "light": "#FFB74D",
+      "gradient_start": "#FF9500",
+      "gradient_end": "#FFC000"
+    },
+    "text": {
+      "main": "#FDFDFD",
+      "muted": "#A0A0A5",
+      "inverse": "#141416"
+    },
+    "track": "#FFFFFF",
+    "danger": {
+      "main": "#FF3B30",
+      "dark": "#CC2F26"
+    },
+    "success": {
+      "main": "#34C759",
+      "dark": "#2A9D47"
+    }
+  },
+  "typography": {
+    "font_family": "Fredoka",
+    "instructions_to_main_agent": "Ensure you load the Fredoka font family (e.g. from @expo-google-fonts/fredoka). Map these scales carefully.",
+    "scale": {
+      "display": { "fontSize": 40, "lineHeight": 48, "letterSpacing": 0.5, "fontFamily": "Fredoka_700Bold" },
+      "h1": { "fontSize": 32, "lineHeight": 40, "letterSpacing": 0.25, "fontFamily": "Fredoka_700Bold" },
+      "h2": { "fontSize": 24, "lineHeight": 32, "letterSpacing": 0, "fontFamily": "Fredoka_600SemiBold" },
+      "h3": { "fontSize": 20, "lineHeight": 28, "letterSpacing": 0, "fontFamily": "Fredoka_500Medium" },
+      "body": { "fontSize": 16, "lineHeight": 24, "letterSpacing": 0, "fontFamily": "Fredoka_400Regular" },
+      "body_bold": { "fontSize": 16, "lineHeight": 24, "letterSpacing": 0, "fontFamily": "Fredoka_600SemiBold" },
+      "caption": { "fontSize": 14, "lineHeight": 20, "letterSpacing": 0, "fontFamily": "Fredoka_500Medium" },
+      "small": { "fontSize": 12, "lineHeight": 16, "letterSpacing": 0, "fontFamily": "Fredoka_400Regular" }
+    }
+  },
+  "spacing": {
+    "grid": "8pt",
+    "tokens": {
+      "xs": 4, "sm": 8, "md": 16, "lg": 24, "xl": 32, "xxl": 40, "xxxl": 48, "massive": 64
+    }
+  },
+  "components": {
+    "Button3D": {
+      "description": "Duolingo-style gamified button with a thick bottom border simulating 3D depth.",
+      "container": "borderRadius: 16, paddingVertical: 16, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center'",
+      "primary": {
+        "backgroundColor": "#FF9500",
+        "borderBottomWidth": 6,
+        "borderBottomColor": "#CC7700"
+      },
+      "secondary": {
+        "backgroundColor": "#222226",
+        "borderWidth": 2,
+        "borderColor": "#2E2E32",
+        "borderBottomWidth": 6,
+        "borderBottomColor": "#1A1A1D"
+      },
+      "disabled": {
+        "backgroundColor": "#2E2E32",
+        "borderBottomWidth": 6,
+        "borderBottomColor": "#1A1A1D",
+        "opacity": 0.6
+      },
+      "interaction": "On pressIn, use Animated/Reanimated or state to translate Y by 6px, reduce borderBottomWidth to 0, and maintain the element's total height footprint (e.g. by adding marginTop: 6).",
+      "text": "fontFamily: 'Fredoka_700Bold', fontSize: 18, color: '#FDFDFD', textTransform: 'uppercase', letterSpacing: 1"
+    },
+    "Chip3D": {
+      "description": "Selectable option card/chip with 3D bottom border.",
+      "container": "borderRadius: 16, padding: 20, marginBottom: 16, backgroundColor: '#222226', borderBottomWidth: 4, borderBottomColor: '#1A1A1D', borderWidth: 2, borderColor: '#222226'",
+      "selected": {
+        "backgroundColor": "rgba(255, 149, 0, 0.1)",
+        "borderColor": "#FF9500",
+        "borderBottomColor": "#CC7700"
+      },
+      "interaction": "Pressed state translates Y by 4px, borderBottomWidth drops to 0."
+    },
+    "ProgressBar": {
+      "description": "Onboarding progress tracking.",
+      "container": "height: 16, backgroundColor: '#FFFFFF', borderRadius: 8, overflow: 'hidden', width: '100%'",
+      "fill": "Absolute positioned view (or Expo LinearGradient if used) from #FF9500 to #FFC000. Height 100%, borderRadius 8. Animate width based on active step index."
+    }
+  },
+  "screens": {
+    "Splash": {
+      "duration": 3000,
+      "layout": "Flex 1, justifyContent 'center', alignItems 'center'. Solid orange background (#FF9500) matching mascot world.",
+      "motion": "Fade in on mount. Auto navigate to Welcome after duration."
+    },
+    "Welcome": {
+      "layout": "SafeAreaView. Dark background (#141416).",
+      "content": "Top section: Mascot asset scaled proportionally. Mid section: Welcome Title & Subtitle. Bottom section: Primary 3D Continue button and TOS/Privacy text (muted, small).",
+      "footer_links": "Standard legal links at bottom, color: muted text, textDecorationLine: 'underline'."
+    },
+    "OnboardingLayout": {
+      "header": "Row with Back Arrow (left side, width: 40), Progress Bar (center, flex: 1), and a placeholder View (right side, width: 40) for alignment balance.",
+      "content": "Flex 1, scrollable if content overflows. Title (H1), Subtitle (H3), Dynamic input/chips.",
+      "footer": "Fixed at bottom above safe area (paddingBottom: 16). Primary 3D Continue button."
+    }
+  },
+  "onboarding_flow": [
+    { "step": 1, "type": "info", "title": "How it works", "subtitle": "Step 1: Set your wake up time.", "icon": "clock" },
+    { "step": 2, "type": "info", "title": "Choose your vibe", "subtitle": "Step 2: Select a fun or loud ringtone.", "icon": "music" },
+    { "step": 3, "type": "info", "title": "Prove you're awake", "subtitle": "Step 3: Complete a fun challenge (math, barcode, or photo) to silence the alarm.", "icon": "camera" },
+    { "step": 4, "type": "info", "title": "Win the day", "subtitle": "Step 4: Earn streaks and rewards for waking up on time!", "icon": "star" },
+    { "step": 5, "type": "single_choice", "title": "What's your biggest morning struggle?", "options": ["Hitting snooze endlessly", "Doom-scrolling in bed", "Feeling too groggy", "No morning motivation"] },
+    { "step": 6, "type": "fun_fact", "title": "Did you know?", "quote": "It takes an average of 66 days to form a solid new habit. We're here to help you build the ultimate morning routine." },
+    { "step": 7, "type": "single_choice", "title": "Honestly, how often do you snooze?", "options": ["Never! I'm a pro", "1-2 times", "3-5 times", "I set 10 alarms"] },
+    { "step": 8, "type": "time_picker", "title": "What time do you usually want to wake up?", "subtitle": "We'll set your first baseline alarm." },
+    { "step": 9, "type": "fun_fact", "title": "Morning Power", "quote": "People who wake up early are generally more proactive and anticipate problems better. You're setting yourself up for success!" },
+    { "step": 10, "type": "multi_choice", "title": "What are your morning goals?", "subtitle": "Select all that apply", "options": ["Be more productive", "Exercise in the morning", "Have time for breakfast", "Stop rushing"] },
+    { "step": 11, "type": "single_choice", "title": "Which alarm challenge sounds best?", "options": ["Math Equations (Brain workout)", "Barcode Scan (Walk to bathroom)", "Take a Picture (Capture the morning)"] },
+    { "step": 12, "type": "social_proof", "title": "Join 100k+ early risers", "subtitle": "People just like you are transforming their mornings.", "testimonials": true },
+    { "step": 13, "type": "fun_fact", "title": "The Snooze Trap", "quote": "Snoozing actually fragments your sleep cycle, making you feel groggier than waking up right away. Let's break the cycle!" },
+    { "step": 14, "type": "gratitude", "title": "Thanks for trusting us!", "subtitle": "We're thrilled to be part of your morning journey. Let's make waking up fun.", "mascot_accent": true },
+    { "step": 15, "type": "commitment", "title": "Ready to win your mornings?", "subtitle": "Commit to waking up with Charrpy starting tomorrow." }
+  ],
+  "motion": {
+    "page_transitions": "Standard horizontal slide. Progress bar animates fluidly on value change.",
+    "button_press": "Depress effect: borderBottomWidth goes from 6 to 0, translateY goes from 0 to 6, creating authentic 3D compression."
+  },
+  "media": {
+    "mascot_hero": "https://customer-assets.emergentagent.com/job_08df2e4a-53d3-4ec5-9a3f-31bca4cbc41c/artifacts/hakoad8a_Splash-screen.png"
+  }
+}

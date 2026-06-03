@@ -80,13 +80,12 @@ export default function Onboarding() {
       setIndex((i) => i + 1);
       return;
     }
-    // Final commit — persist & route on. Avatars/main screens come later.
-    await storage.setItem("charrpy.onboarding.completed", true);
+    // Final commit — persist & route on to avatar selection.
     await storage.setItem(
       "charrpy.onboarding.answers",
       JSON.stringify(answers),
     );
-    router.replace("/onboarding-complete");
+    router.replace("/avatar-select");
   }, [answers, index, router, total]);
 
   const setSingle = (key: string, value: string) =>

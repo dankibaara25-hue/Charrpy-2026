@@ -38,10 +38,17 @@ mascot, Duolingo-style 3D playful UI, dark theme with vibrant orange accents.
 - Answers persisted to local storage on completion
 - Onboarding-complete placeholder screen
 
-### M2 — Avatar selection (next, awaiting assets from user)
-- Grid of avatars; persist selection; route to main app
+### M2 — Avatar selection ✅
+- 19 illustrated avatars (cohesive light-blue background, gamified style)
+  bundled under `/app/frontend/assets/images/avatars/`
+- Grid screen (`/avatar-select`) with 3-column responsive layout
+- Duolingo-style 3D selection treatment: orange ring + checkmark badge +
+  thick bottom border on the selected tile
+- Selection persisted via `@/src/utils/storage` (`charrpy.avatar.id`)
+- Routed into the flow as: commitment slide → `/avatar-select` → `/onboarding-complete`
+- Completion screen now hero-renders the chosen avatar
 
-### M3 — Main app screens
+### M3 — Main app screens (next)
 - Alarms (CRUD)
 - Leaderboard
 - Settings

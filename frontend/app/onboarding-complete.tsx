@@ -1,16 +1,27 @@
-// Placeholder reached after onboarding completion. Avatar selection + the
-// main app (alarms, leaderboard, settings) will be built in a follow-up pass.
+// Landing screen reached after the user picks their avatar. For now this is
+// a placeholder until the main app (alarms, leaderboard, settings) lands.
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import Button3D from "@/src/components/Button3D";
+import { findAvatar } from "@/src/onboarding/avatars";
 import { colors, fonts, space, type } from "@/src/theme";
+import { storage } from "@/src/utils/storage";
 
 export default function OnboardingComplete() {
   const router = useRouter();
+  const [avatarId, setAvatarId] = useState<string | null>(null);
+
+  useEffect(() => {
+    storage.getItem("charrpy.avatar.id", "").then((v) => {
+      if (typeof v === "string" && v) setAvatarId(v);
+    });
+  }, []);
+
+  const avatar = findAvatar(avatarId);
 
   return (
     <SafeAreaView
@@ -20,16 +31,24 @@ export default function OnboardingComplete() {
     >
       <View style={styles.content}>
         <View style={styles.heroWrap}>
-          <Image
-            source={require("../assets/images/mascot-splash.png")}
-            style={styles.hero}
-            resizeMode="cover"
-          />
+          {avatar ? (
+            <Image
+              source={avatar.source}
+              style={styles.hero}
+              resizeMode="cover"
+            />
+          ) : (
+            <Image
+              source={require("../assets/images/mascot-splash.png")}
+              style={styles.hero}
+              resizeMode="cover"
+            />
+          )}
         </View>
         <Text style={styles.title}>You&apos;re all set!</Text>
         <Text style={styles.subtitle}>
-          Up next: pick your avatar, then we&apos;ll head to your alarms,
-          leaderboard, and settings. Coming soon.
+          Your avatar is locked in. Alarms, leaderboard, and settings are next —
+          coming very soon.
         </Text>
       </View>
       <View style={styles.footer}>
@@ -59,6 +78,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: colors.primary,
     marginBottom: space.xl,
+    borderBottomWidth: 6,
+    borderBottomColor: colors.primaryDark,
   },
   hero: { width: "100%", height: "100%" },
   title: {

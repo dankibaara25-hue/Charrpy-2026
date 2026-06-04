@@ -40,27 +40,25 @@ mascot, Duolingo-style 3D playful UI, dark theme with vibrant orange accents.
 
 ### M2 — Avatar selection ✅
 ### M2.5 — UI refresh + Firebase Anonymous Auth ✅
-- All onboarding screens migrated from dark BG to warm cream palette so the
-  Duolingo-style 3D depth reads strongly. Strong dark-brown bottom shadow on
-  every Button3D / Chip3D, both at rest and pressed.
-- Welcome and avatar screens slimmed to title + ≤3-word subtitle. Onboarding
-  subtitles trimmed to ≤6 words.
-- Custom illustrations (welcome / set-alarm / ringtone / win-the-day /
-  thank-you) PNG-rasterised from user-provided SVGs (transparent background
-  enforced post-render so the cream BG shows through).
-- Firebase modular Web SDK initialised in `src/lib/firebase.ts` against the
-  `charrpy-2026` project. AuthProvider wraps the whole app and listens for
-  `onAuthStateChanged`. Splash now routes returning anonymous users straight
-  to `/(main)`, new users to `/welcome`.
-- New `/nickname` route after avatar-select: validates a `[A-Za-z0-9_.-]{2,16}`
-  handle and calls `signInAnonymously()` → routes to `/paywall`.
-- New `/paywall` route — Charrpy Pro stub with feature card + price card.
-  RevenueCat native SDK can't run in Expo Go (per integration playbook), so
-  both buttons currently route to `/(main)`. The stub has explanatory copy
-  for the user, and the file's top comment documents how to swap in
-  `RevenueCatUI.presentPaywall` in a dev build.
-- New `/(main)` placeholder for the eventual alarms / leaderboard / settings.
-  Greets `hey {nickname}`, shows avatar + truncated UID, has a reset button.
+### M2.6 — Avatar refresh + Ringtones + Set-alarm gate ✅
+- All 19 avatars replaced with the new SVG-sourced illustrations (rasterised
+  to ~120 KB transparent PNGs each → bundle ~95% smaller than the old 3 MB
+  avatars, same visual). Folder: `assets/images/avatars/01.png…19.png`.
+- New `Complete Action` illustration wired into onboarding step 2.
+- `Welcome!` subtitle added above the bird on the welcome page.
+- Onboarding shortened to 13 steps — time picker removed from the carousel
+  and moved to a dedicated screen at the high-intent moment.
+- New `/ringtone-select` route — 5 locally-bundled WAV ringtones (Classic
+  Alarm, Bell Chime, Gentle Morning, Pop Alarm, Wake-up Melody), synthesised
+  in Python so playback is offline and license-free. Radio rows preview audio
+  on tap via `expo-audio`'s `createAudioPlayer`. Selection persisted.
+- New `/set-alarm` route — dedicated time picker with live preview pill,
+  "Lock it in" CTA. Persisted as `charrpy.alarm.time`.
+- Firebase Anonymous Auth verified end-to-end (user enabled the provider
+  in the Firebase Console). Returning anon users skip onboarding via the
+  splash → /(main) shortcut.
+- Final flow: splash → welcome → onboarding (13) → avatar-select → nickname
+  → ringtone-select → set-alarm → paywall → (main).
 
 ### M3 — Main app screens (next)
 - Alarms (CRUD)

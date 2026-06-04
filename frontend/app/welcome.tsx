@@ -36,6 +36,7 @@ export default function Welcome() {
       </View>
 
       <View style={styles.content}>
+        <Text style={styles.eyebrow}>Welcome!</Text>
         <Text style={styles.title}>charrpy</Text>
         <Text style={styles.subtitle}>Wake up. Win mornings.</Text>
       </View>
@@ -87,6 +88,12 @@ const styles = StyleSheet.create({
     ...type.display,
     color: colors.primary,
     textTransform: "lowercase",
+    marginBottom: space.xs,
+  },
+  eyebrow: {
+    ...type.h3,
+    color: colors.textMain,
+    fontFamily: fonts.semibold,
     marginBottom: space.xs,
   },
   subtitle: {

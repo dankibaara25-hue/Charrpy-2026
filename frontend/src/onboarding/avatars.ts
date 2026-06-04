@@ -1,5 +1,7 @@
-// Avatar roster for Charrpy. require()'d at module load so Metro bundles
-// all 19 assets up front — no dynamic strings allowed in require().
+// Avatar roster — small rasterised PNGs converted from the source SVGs.
+// We rasterise at build time so Metro bundles 19 × ~120 KB images instead
+// of 19 × ~1 MB SVGs (the SVGs contain embedded base64 raster anyway —
+// rasterising up front strips the wrapper and keeps the visual identical).
 
 import { ImageSourcePropType } from "react-native";
 
@@ -10,10 +12,10 @@ export interface Avatar {
 
 export const AVATARS: Avatar[] = [
   { id: "a01", source: require("../../assets/images/avatars/01.png") },
-  { id: "a02", source: require("../../assets/images/avatars/02.jpg") },
-  { id: "a03", source: require("../../assets/images/avatars/03.jpg") },
+  { id: "a02", source: require("../../assets/images/avatars/02.png") },
+  { id: "a03", source: require("../../assets/images/avatars/03.png") },
   { id: "a04", source: require("../../assets/images/avatars/04.png") },
-  { id: "a05", source: require("../../assets/images/avatars/05.jpg") },
+  { id: "a05", source: require("../../assets/images/avatars/05.png") },
   { id: "a06", source: require("../../assets/images/avatars/06.png") },
   { id: "a07", source: require("../../assets/images/avatars/07.png") },
   { id: "a08", source: require("../../assets/images/avatars/08.png") },

@@ -54,12 +54,19 @@ export type OnboardingStep =
       subtitle: string;
     };
 
+const SET_ALARM = require("../../assets/images/onboarding/set-alarm.png");
 const RINGTONE = require("../../assets/images/onboarding/ringtone.png");
 const COMPLETE_ACTION = require("../../assets/images/onboarding/complete-action.png");
 const WIN_THE_DAY = require("../../assets/images/onboarding/win-the-day.png");
 const THANK_YOU = require("../../assets/images/onboarding/thank-you.png");
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
+  {
+    type: "info",
+    title: "Set the alarm",
+    subtitle: "Pick your wake-up.",
+    art: SET_ALARM,
+  },
   {
     type: "info",
     title: "Select a ringtone",

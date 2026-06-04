@@ -1,14 +1,8 @@
-// Set alarm — last gate before the paywall. Reuses the inline time picker.
-// The chosen time + ringtone are stored locally and shown summarised on the
-// paywall, so the moment of "high intent" carries forward into conversion.
+// Set alarm — dedicated time picker right before the paywall (the high-intent
+// moment). Lean layout per spec: no icon badge above, no preview pill below.
 
 import React, { useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +11,7 @@ import Button3D from "@/src/components/Button3D";
 import TimePickerInline, {
   TimeValue,
 } from "@/src/components/TimePickerInline";
-import { colors, fonts, radius, space, type } from "@/src/theme";
+import { colors, fonts, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
 
 const DEFAULT_TIME: TimeValue = { hour: 7, minute: 0, meridiem: "AM" };
@@ -53,24 +47,11 @@ export default function SetAlarm() {
       </View>
 
       <View style={styles.body}>
-        <View style={styles.iconBadge}>
-          <Ionicons name="alarm" size={36} color={colors.textInverse} />
-        </View>
         <Text style={styles.title}>Set your alarm</Text>
         <Text style={styles.subtitle}>This is tomorrow&apos;s win.</Text>
 
         <View style={styles.pickerWrap}>
           <TimePickerInline value={time} onChange={setTime} />
-        </View>
-
-        <View style={styles.previewCard}>
-          <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-          <Text style={styles.previewText}>
-            Wake up at{" "}
-            <Text style={styles.previewTime}>
-              {time.hour}:{String(time.minute).padStart(2, "0")} {time.meridiem}
-            </Text>
-          </Text>
         </View>
       </View>
 
@@ -105,17 +86,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderBottomWidth: 6,
-    borderBottomColor: colors.primaryDark,
-    marginBottom: space.md,
-  },
   title: {
     ...type.h1,
     color: colors.textMain,
@@ -127,31 +97,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontFamily: fonts.regular,
     textAlign: "center",
-    marginBottom: space.lg,
+    marginBottom: space.xl,
   },
-  pickerWrap: { width: "100%", marginBottom: space.lg },
-  previewCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.shadow,
-    borderBottomWidth: 4,
-    borderBottomColor: colors.shadow,
-    paddingHorizontal: space.md,
-    paddingVertical: 12,
-  },
-  previewText: {
-    fontFamily: fonts.medium,
-    fontSize: 15,
-    color: colors.textMain,
-  },
-  previewTime: {
-    fontFamily: fonts.bold,
-    color: colors.primary,
-  },
+  pickerWrap: { width: "100%" },
   footer: {
     paddingHorizontal: space.lg,
     paddingBottom: space.md,

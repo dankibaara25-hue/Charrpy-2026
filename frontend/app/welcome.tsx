@@ -1,4 +1,4 @@
-// Welcome screen — lean copy, cream background, hero illustration.
+// Welcome screen — lean copy, "Welcome!" above the hero, cream background.
 
 import React from "react";
 import {
@@ -27,6 +27,10 @@ export default function Welcome() {
       edges={["top", "bottom"]}
       testID="welcome-screen"
     >
+      <View style={styles.top}>
+        <Text style={styles.eyebrow}>Welcome!</Text>
+      </View>
+
       <View style={styles.heroWrap}>
         <Image
           source={require("../assets/images/onboarding/welcome.png")}
@@ -36,7 +40,6 @@ export default function Welcome() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.eyebrow}>Welcome!</Text>
         <Text style={styles.title}>charrpy</Text>
         <Text style={styles.subtitle}>Wake up. Win mornings.</Text>
       </View>
@@ -71,14 +74,24 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  top: {
+    paddingTop: space.xl,
+    paddingHorizontal: space.lg,
+    alignItems: "center",
+  },
+  eyebrow: {
+    ...type.h2,
+    color: colors.textMain,
+    fontFamily: fonts.bold,
+  },
   heroWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space.xl,
-    paddingTop: space.xl,
+    paddingTop: space.md,
   },
-  hero: { width: "100%", height: "100%", maxHeight: 360 },
+  hero: { width: "100%", height: "100%", maxHeight: 340 },
   content: {
     paddingHorizontal: space.lg,
     paddingBottom: space.lg,
@@ -88,12 +101,6 @@ const styles = StyleSheet.create({
     ...type.display,
     color: colors.primary,
     textTransform: "lowercase",
-    marginBottom: space.xs,
-  },
-  eyebrow: {
-    ...type.h3,
-    color: colors.textMain,
-    fontFamily: fonts.semibold,
     marginBottom: space.xs,
   },
   subtitle: {

@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.xxl,
     gap: 8,
   },
-  image: { width: 220, height: 220, marginBottom: space.md },
+  image: { width: 160, height: 160, marginBottom: space.md },
   title: {
     ...type.h2,
     color: colors.textMain,

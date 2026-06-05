@@ -24,9 +24,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ hint, testID }) => (
 
 const styles = StyleSheet.create({
   wrap: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: space.xxl,
+    paddingHorizontal: space.lg,
     gap: 8,
   },
   image: { width: 160, height: 160, marginBottom: space.md },

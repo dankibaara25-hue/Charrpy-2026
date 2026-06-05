@@ -237,3 +237,46 @@ frontend:
 agent_communication:
   -agent: "main"
   -message: "M5 done — wake-up barcode + photo challenges. Smoke-tested visually on web preview: barcode page renders the orange dashed rectangle + lightning icon + Back pill exactly like the reference (palette adapted to warm-cream/orange). Photo page renders the square dashed frame + countdown badge + random emoji + object prompt. Reward screen routes correctly. Please run end-to-end: (1) open /alarm-edit, change Action to Barcode, save, tap Test alarm → expect /challenges/barcode + Back pill works. (2) Set Action=Photo, Test → expect 3s countdown then auto-redirect to /reward. (3) Set Action=Math, Test → existing math flow but on completion now routes to /reward?from=math. (4) Reward screen Continue → /(main). No regressions to onboarding/auth/paywall expected."
+
+# ===== Iteration M6 — Streak Page + Empty States + VirtualizedList Bug =====
+
+frontend:
+  - task: "Fix VirtualizedList-in-ScrollView red box on alarm-edit"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/TimePickerInline.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Replaced FlatList → ScrollView inside the inline hour/minute wheels. Data is tiny (12 hours, 60 minutes) so virtualization wasn't needed; this eliminates the red-box 'VirtualizedLists should never be nested inside plain ScrollViews' warning when TimePickerInline is rendered inside alarm-edit's parent ScrollView. All other behavior preserved (snap-to-interval, debounced web scroll commit, native onScrollEndDrag/onMomentumScrollEnd, initial scroll position via contentOffset)."
+
+  - task: "Empty state centered vertically on Alarms + Leaderboard tabs"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/components/EmptyState.tsx, /app/frontend/app/(main)/index.tsx, /app/frontend/app/(main)/leaderboard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "EmptyState wrap is now flex:1 + center-justified. Both tabs wrap the EmptyState in a parent View with minHeight 360 inside a ScrollView whose contentContainerStyle now has flexGrow:1 — so the empty illustration + hint sit mid-screen instead of clinging to the top quarter. Verified visually on web preview for both Alarms and Leaderboard tabs."
+
+  - task: "Streak reward screen w/ flame GIF + weekday chips"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/reward.tsx, /app/frontend/src/lib/streak.ts, /app/frontend/assets/images/gamification/streak.gif"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Rebuilt /reward as the proper Streak screen using the user-supplied animated flame GIF (downloaded to /assets/images/gamification/streak.gif). Layout adapts the Duolingo-style reference (Mo→Su strip + big day count) but in Charrpy's warm-cream palette and our 3D Duolingo-style depth on the day chips. New src/lib/streak.ts owns persistence: recordChallengeWin() is idempotent per-day (calling twice the same calendar day doesn't double-count, but still returns current state), tracks { count, history map of YYYY-MM-DD, lastDate }, advances streak if yesterday was completed otherwise resets to 1, and keeps 28 days of history. awardXp() adds XP per win (constant XP_PER_WIN=25). buildCurrentWeek() returns the 7 Mon-first entries for rendering. The reward screen reads + writes both on mount, shows the day count + Mo→Su row with check icons on completed chips and a primary-orange ring around today, then a small XP line. Continue → /(main). Screenshot verified on web preview."
+
+agent_communication:
+  -agent: "main"
+  -message: "M6 bundled three changes: (1) VirtualizedList nested-in-ScrollView crash on alarm-edit fixed by swapping FlatList for ScrollView inside TimePickerInline; verified alarm-edit screen loads cleanly. (2) Empty state on Alarms and Leaderboard tabs now centered vertically — both render at ~mid-screen with the sleeping bird mascot. (3) /reward fully redesigned: animated flame GIF at top, giant orange day count, 'day streak' caption, Mo→Su 3D circular check chips (today gets a primary ring even if not yet completed; completed days are filled with orange + checkmark + bottom-border depth). Streak + XP persisted locally via /src/lib/streak.ts (idempotent same-day; resets if a day is skipped). Please verify: (a) opening alarm-edit no longer red-boxes, (b) Alarms empty / Leaderboard empty visuals are centered, (c) /reward shows flame gif + '1' day streak after one challenge with today's weekday chip filled."

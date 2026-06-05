@@ -1,0 +1,50 @@
+{
+  "summary": "Frontend-only E2E on mobile viewport 390x844 against https://wake-up-challenge-5.preview.emergentagent.com. ALL M6 objectives PASS. (B) /alarm-edit VirtualizedList red-box fix verified — page mounts cleanly, 0 console occurrences of 'VirtualizedList', 0 pageerrors after 4.5s wait, and both wheels (testID time-picker-hours + time-picker-minutes) render visible. The TimePickerInline FlatList→ScrollView swap is effective. (C1) /(main) Alarms tab empty state: with alarms cleared, testID 'alarms-empty' renders at bounding box {x:24,y:104,w:342,h:544} → center Y = 376px = 44.5% of 844 → within the required 30-70% band → PASS centered. (C2) /(main)/leaderboard empty state: testID 'leaderboard-empty' bounding box identical {x:24,y:104,w:342,h:544}, center Y = 376px = 44.5% → PASS centered. The shared EmptyState component (flex:1 + center) wrapped in emptyWrap {flex:1, minHeight:360, justifyContent:center} works as intended on both tabs. (D) Streak reward screen full coverage: /reward?from=barcode — all 5 testIDs (reward-screen, reward-streak-flame, reward-streak-count, reward-week-row, reward-continue-button) visible; streak count text reads '1' (>=1 since recordChallengeWin runs on mount); 'Barcode scanned!' headline present; '+25 XP' substring present in XP line ('+25 XP · 25 total'); 'day streak' kicker present; tapping Continue navigates to https://...preview.emergentagent.com/ which is /(main) (router.replace('/(main)')); /reward?from=photo headline = 'Photo captured!' ✓; /reward?from=math headline = 'Math conquered!' ✓. The Mo→Su week row renders 7 chips with FR (today) outlined orange and filled with checkmark since recordChallengeWin marked today as completed. (A) No-regression: leaderboard tab loaded cleanly with the tab bar (Alarms / Leaderboard / Settings) — implicit no-regression on the main tabbar. Onboarding flow re-validation skipped this iteration (covered fully in iter 5); main agent self-test recommended for the full Welcome→Paywall happy path. Console shows only the expected 3x 'navigator.vibrate' Chrome-feature warnings (Haptics on web without user gesture, non-blocking). 0 pageerrors across all 5 visited routes. Deprecated packages detected: none new this iteration (carry-over warnings from iter 5 — pointerEvents prop deprecation on TimePickerInline.tsx:117 and textShadow* deprecation on CameraChrome.tsx — were not re-triggered in this run since we did not visit /challenges/* but remain unfixed and were not in scope of M6). SafeAreaView issues detected: none.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "TimePickerInline",
+        "issue": "Carry-over from iter 1/2/4/5 (not in M6 scope, still unfixed): the `pointerEvents` PROP is now passed via style ({ pointerEvents: 'none' }) on selectionLine L117 which is correct; HOWEVER the upstream warning about props.pointerEvents may still fire from other places. Re-check on next /set-alarm or /alarm-edit visit. Reference: /app/frontend/src/components/TimePickerInline.tsx:117."
+      },
+      {
+        "component": "CameraChrome.hintText",
+        "issue": "Carry-over from iter 5 (not in M6 scope): 'textShadow*' style props are deprecated. Migrate to `textShadow` shorthand. Reference: /app/frontend/src/challenges/CameraChrome.tsx ~L158-160."
+      },
+      {
+        "component": "useAlarmAudio / alarm autoplay",
+        "issue": "Carry-over from iter 5 (not in M6 scope): expo-audio play() promise not .catch()'d on web — surfaces as uncaught PAGEERROR on /challenges/barcode and /challenges/photo. Reference: /app/frontend/src/challenges/useAlarmAudio.ts."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_6.json",
+    "/app/test_reports/iteration_5.json"
+  ],
+  "action_items": [
+    "M6 is GREEN — no functional fixes required for the scope of this iteration.",
+    "Optional carry-overs (not in M6 scope, all non-blocking, all surfaced in iter 5 report): (1) migrate textShadow* in CameraChrome.tsx hintText to the new shorthand; (2) attach .catch(() => {}) on the expo-audio player.play() promise in useAlarmAudio.ts; (3) re-audit pointerEvents-as-prop usages across TimePickerInline if the deprecation warning re-surfaces."
+  ],
+  "critical_code_review_comments": [
+    "TimePickerInline.tsx: FlatList → ScrollView migration is clean — data sets are tiny (12 hours, 60 minutes), snapToInterval + contentOffset preserved, debounced onScroll callback handles trackpad/mouse-wheel scrolling on react-native-web where onMomentumScrollEnd doesn't always fire. selectionLine correctly uses style={{ pointerEvents: 'none' }} (the new RN style API) instead of the deprecated prop.",
+    "EmptyState.tsx: wrap uses flex:1 + alignItems:center + justifyContent:center — the right primitive for vertical centering. Caller (alarms tab + leaderboard tab) wraps it in emptyWrap {flex:1, minHeight:360, justifyContent:center} which guarantees a tall enough container even on small content areas. Result: center Y = 44.5% of viewport on both screens — squarely within the spec's 30-70% band.",
+    "reward.tsx: state hydration via recordChallengeWin() is idempotent for same-day re-entries (matches handoff context); awardXp gated by `advanced` flag prevents XP double-award on refresh; placeholderWeek() prevents empty render flash before AsyncStorage resolves. headline ternary correctly maps from='barcode' | 'photo' | 'math' → 'Barcode scanned!' / 'Photo captured!' / 'Math conquered!' (default is also Math conquered which is fine since /reward without param shouldn't be reachable in normal flow). Continue uses router.replace('/(main)') so user can't /back into the reward screen — good UX.",
+    "DayChip 3D treatment: filled (completed) chips render with bg=colors.primary, border=colors.primaryDark, borderBottomWidth=5 (CHIP_DEPTH) — matches the spec's '3D circular chips with white checkmark + bottom-border depth'. Today's chip when NOT yet filled gets a primary-orange ring via dayChipToday override — matches the 'primary-orange ring' requirement.",
+    "src/lib/streak.ts: clean isolation of streak + XP storage; trimHistory caps history at 28 entries; addDays uses Date arithmetic correctly (no DST bug since we go through Date constructor). buildCurrentWeek correctly anchors on Monday via `(dow + 6) % 7`. Storage layer is AsyncStorage-backed per the handoff context — Firestore migration deferred.",
+    "(main)/index.tsx + (main)/leaderboard.tsx: both wrap the EmptyState in an emptyWrap with `flex:1, minHeight:360, justifyContent:center` inside a ScrollView with `flexGrow:1` content container — this is the correct RN pattern for vertically centering empty-state content inside a scrollable container while keeping the title pinned at the top.",
+    "No HTML primitives used in any of the M6 files. All text wrapped in <Text>. All interactive elements have testIDs. Files are within size limits (TimePickerInline.tsx 253 lines, reward.tsx 245 lines, streak.ts 159 lines)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only)",
+    "frontend": "100% — All M6 objectives (B alarm-edit fix, C1 alarms-empty centered, C2 leaderboard-empty centered, D1-D9 reward screen) pass. 0 pageerrors. 0 VirtualizedList warnings."
+  },
+  "seed_data_creation": "Set localStorage flags { charrpy.onboarding.completed: 'true', charrpy.nickname: 'tester' } and removed charrpy.alarms to render the alarms empty state. recordChallengeWin() persisted charrpy.streak = { count:1, history:{ '<today>': true }, lastDate:'<today>' } and awardXp set charrpy.xp = '25' as a side-effect of visiting /reward.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "M6 (TimePicker FlatList→ScrollView, empty-state centering, streak reward screen) is GREEN. To re-test reward without inflating the streak from previous runs, clear localStorage keys 'charrpy.streak' and 'charrpy.xp' before navigating to /reward. The reward screen always shows >=1 because recordChallengeWin runs on mount. Streak headlines per `from`: barcode→'Barcode scanned!', photo→'Photo captured!', math→'Math conquered!' (default also = Math conquered). XP line format: '+25 XP · <total> total'. Empty-state centering target: alarms-empty and leaderboard-empty bounding-box center Y must land in 30-70% of viewport height (currently both at 44.5% of 844 = 376px). To bypass onboarding for /(main) tests: set localStorage.charrpy.onboarding.completed='true' and localStorage.charrpy.nickname='<any>' BEFORE navigating to /(main).",
+  "rca_of_issue": "N/A — no functional bugs. M6 fix (FlatList→ScrollView in TimePickerInline) confirmed effective: VirtualizedLists-nested-in-ScrollViews red-box no longer fires on /alarm-edit (0 console occurrences, 0 pageerrors). Empty-state vertical centering confirmed: both alarms tab and leaderboard tab use a shared `emptyWrap { flex:1, minHeight:360, justifyContent:center }` wrapper around <EmptyState/> (which itself is flex:1, alignItems+justifyContent center) inside a ScrollView with `contentContainerStyle={{ flexGrow:1 }}` — the standard RN recipe for vertically centering content in a scroll container. Streak reward screen fully wired: recordChallengeWin() idempotent storage write + awardXp() gated by the 'advanced' flag prevents double-award on refresh."
+}

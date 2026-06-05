@@ -20,10 +20,12 @@ export default function Leaderboard() {
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
       >
-        <EmptyState
-          hint="Nothing here at this time."
-          testID="leaderboard-empty"
-        />
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            hint="Nothing here at this time."
+            testID="leaderboard-empty"
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -46,5 +48,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     marginTop: 2,
   },
-  body: { padding: space.lg, paddingBottom: 120 },
+  body: { padding: space.lg, paddingBottom: 120, flexGrow: 1 },
+  emptyWrap: {
+    flex: 1,
+    minHeight: 360,
+    justifyContent: "center",
+  },
 });

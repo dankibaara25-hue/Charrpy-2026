@@ -1,13 +1,14 @@
 // Compact inline time picker — three scrollable wheels (hour + minute) plus
-// an AM/PM toggle. Commits the selection on BOTH `onMomentumScrollEnd` (for
-// native flick-and-release) and `onScrollEndDrag` (for trackpad/mouse on
-// web preview, where momentum doesn't always fire). All four borders are
-// visible on the selection box so the focused row is obvious on cream BG.
+// an AM/PM toggle. Uses ScrollView (not FlatList) because the data is tiny
+// (12 hours, 60 minutes) and avoids the "VirtualizedLists should never be
+// nested inside plain ScrollViews" red-box when hosted inside the
+// alarm-edit ScrollView. All four borders are visible on the selection box
+// so the focused row is obvious on cream BG.
 
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-  FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -41,7 +42,7 @@ const Wheel: React.FC<WheelProps> = ({
   pad,
   testID,
 }) => {
-  const ref = useRef<FlatList<number>>(null);
+  const ref = useRef<ScrollView>(null);
   const initialIndex = Math.max(0, data.indexOf(value));
 
   // Keep the wheel in sync when the parent forces a new value (e.g. when
@@ -49,8 +50,8 @@ const Wheel: React.FC<WheelProps> = ({
   useEffect(() => {
     const idx = data.indexOf(value);
     if (idx >= 0) {
-      ref.current?.scrollToOffset({
-        offset: idx * ITEM_HEIGHT,
+      ref.current?.scrollTo({
+        y: idx * ITEM_HEIGHT,
         animated: false,
       });
     }
@@ -81,28 +82,22 @@ const Wheel: React.FC<WheelProps> = ({
 
   return (
     <View style={styles.wheel} testID={testID}>
-      <FlatList
+      <ScrollView
         ref={ref}
-        data={data}
-        keyExtractor={(it) => `${it}`}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
-        getItemLayout={(_d, i) => ({
-          length: ITEM_HEIGHT,
-          offset: ITEM_HEIGHT * i,
-          index: i,
-        })}
-        initialScrollIndex={initialIndex}
+        contentOffset={{ x: 0, y: initialIndex * ITEM_HEIGHT }}
         contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
         onMomentumScrollEnd={commit}
         onScrollEndDrag={commit}
         onScroll={handleScroll}
         scrollEventThrottle={32}
-        renderItem={({ item }) => {
+      >
+        {data.map((item) => {
           const isCenter = item === value;
           return (
-            <View style={styles.wheelItem}>
+            <View key={`${item}`} style={styles.wheelItem}>
               <Text
                 style={[
                   styles.wheelText,
@@ -117,8 +112,8 @@ const Wheel: React.FC<WheelProps> = ({
               </Text>
             </View>
           );
-        }}
-      />
+        })}
+      </ScrollView>
       <View style={[styles.selectionLine, { pointerEvents: "none" }]} />
     </View>
   );

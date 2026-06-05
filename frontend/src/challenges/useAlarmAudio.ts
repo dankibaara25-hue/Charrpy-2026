@@ -48,7 +48,13 @@ export function useAlarmAudio(id?: string): UseAlarmReturn {
         const p = createAudioPlayer(ring.source);
         p.loop = true;
         p.volume = target.crescendo ? 0.15 : target.volume;
-        p.play();
+        const result = p.play();
+        // expo-audio on web returns a Promise that rejects when the page
+        // hasn't received a user gesture yet. Swallow it so the challenge
+        // screen doesn't surface an uncaught pageerror in dev preview.
+        if (result && typeof (result as Promise<unknown>).catch === "function") {
+          (result as Promise<unknown>).catch(() => {});
+        }
         playerRef.current = p;
       } catch (e) {
         console.warn("[alarm-audio] start failed", e);

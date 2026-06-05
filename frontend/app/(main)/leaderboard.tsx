@@ -21,8 +21,7 @@ export default function Leaderboard() {
         showsVerticalScrollIndicator={false}
       >
         <EmptyState
-          title="No streaks yet."
-          hint="Beat your first alarm to climb."
+          hint="Nothing here at this time."
           testID="leaderboard-empty"
         />
       </ScrollView>
@@ -38,9 +37,7 @@ const styles = StyleSheet.create({
     paddingBottom: space.sm,
   },
   title: {
-    ...type.display,
-    fontSize: 34,
-    lineHeight: 40,
+    ...type.h1,
     color: colors.textMain,
   },
   subtitle: {

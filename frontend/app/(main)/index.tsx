@@ -92,11 +92,7 @@ export default function AlarmsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {alarms.length === 0 ? (
-          <EmptyState
-            title="No alarms yet."
-            hint="Tap the + button to add one."
-            testID="alarms-empty"
-          />
+          <EmptyState hint="No alarms yet." testID="alarms-empty" />
         ) : (
           alarms.map((a) => (
             <AlarmCard
@@ -183,9 +179,7 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1 },
   title: {
-    ...type.display,
-    fontSize: 34,
-    lineHeight: 40,
+    ...type.h1,
     color: colors.textMain,
   },
   subtitle: {
@@ -227,9 +221,9 @@ const styles = StyleSheet.create({
   cardMain: { flex: 1 },
   cardTime: {
     fontFamily: fonts.bold,
-    fontSize: 32,
+    fontSize: 26,
     color: colors.textMain,
-    lineHeight: 36,
+    lineHeight: 30,
   },
   cardMeta: {
     ...type.caption,

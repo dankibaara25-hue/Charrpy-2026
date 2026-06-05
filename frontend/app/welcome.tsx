@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   eyebrow: {
-    ...type.h2,
+    ...type.h3,
     color: colors.textMain,
     fontFamily: fonts.bold,
   },
@@ -89,9 +89,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space.xl,
-    paddingTop: space.md,
+    paddingTop: space.sm,
   },
-  hero: { width: "100%", height: "100%", maxHeight: 340 },
+  hero: { width: "100%", height: "100%", maxHeight: 280 },
   content: {
     paddingHorizontal: space.lg,
     paddingBottom: space.lg,

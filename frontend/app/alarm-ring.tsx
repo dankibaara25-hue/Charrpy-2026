@@ -333,14 +333,14 @@ const styles = StyleSheet.create({
   },
   time: {
     fontFamily: fonts.bold,
-    fontSize: 28,
+    fontSize: 22,
     color: colors.primary,
     marginBottom: 4,
   },
   kicker: {
     fontFamily: fonts.bold,
-    fontSize: 13,
-    letterSpacing: 2,
+    fontSize: 12,
+    letterSpacing: 1.5,
     color: colors.textMuted,
     textTransform: "uppercase",
     marginBottom: space.sm,
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   },
   equation: {
     fontFamily: fonts.bold,
-    fontSize: 56,
+    fontSize: 42,
     color: colors.textMain,
     textAlign: "left",
     marginBottom: space.md,
@@ -372,11 +372,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.shadow,
     paddingHorizontal: space.md,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   answerText: {
     fontFamily: fonts.bold,
-    fontSize: 36,
+    fontSize: 28,
     color: colors.textMain,
   },
   pad: {
@@ -392,15 +392,15 @@ const styles = StyleSheet.create({
   },
   padKey: {
     flex: 1,
-    height: 56,
-    borderRadius: 28,
+    height: 50,
+    borderRadius: 24,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
   padDigit: {
     fontFamily: fonts.bold,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.textMain,
   },
   footer: {

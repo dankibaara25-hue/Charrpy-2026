@@ -34,13 +34,13 @@ export const fonts = {
 } as const;
 
 export const type = {
-  display: { fontFamily: fonts.bold, fontSize: 40, lineHeight: 48, letterSpacing: 0.5 },
-  h1: { fontFamily: fonts.bold, fontSize: 32, lineHeight: 40, letterSpacing: 0.25 },
-  h2: { fontFamily: fonts.semibold, fontSize: 24, lineHeight: 32 },
-  h3: { fontFamily: fonts.medium, fontSize: 20, lineHeight: 28 },
-  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24 },
-  bodyBold: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 24 },
-  caption: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 },
+  display: { fontFamily: fonts.bold, fontSize: 32, lineHeight: 38, letterSpacing: 0.5 },
+  h1: { fontFamily: fonts.bold, fontSize: 26, lineHeight: 32, letterSpacing: 0.25 },
+  h2: { fontFamily: fonts.semibold, fontSize: 20, lineHeight: 26 },
+  h3: { fontFamily: fonts.medium, fontSize: 17, lineHeight: 24 },
+  body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
+  bodyBold: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22 },
+  caption: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18 },
   small: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16 },
 } as const;
 

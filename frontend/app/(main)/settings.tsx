@@ -101,9 +101,7 @@ const styles = StyleSheet.create({
     paddingBottom: space.sm,
   },
   title: {
-    ...type.display,
-    fontSize: 34,
-    lineHeight: 40,
+    ...type.h1,
     color: colors.textMain,
   },
   subtitle: {
@@ -134,7 +132,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontFamily: fonts.bold,
-    fontSize: 22,
+    fontSize: 18,
     color: colors.textMain,
   },
   profileMeta: {

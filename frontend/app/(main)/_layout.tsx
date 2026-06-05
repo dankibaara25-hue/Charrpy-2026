@@ -1,5 +1,47 @@
-import { Stack } from "expo-router";
+// Bottom-tab shell for the main app. Three tabs as per spec — Alarms,
+// Leaderboard, Settings — with the same Duolingo-style dark-shadow accent.
+
+import React from "react";
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+
+import { colors, fonts } from "@/src/theme";
 
 export default function MainLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Tabs
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: { fontFamily: fonts.bold, fontSize: 12 },
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopWidth: 2,
+          borderTopColor: colors.shadow,
+          height: 76,
+          paddingTop: 8,
+          paddingBottom: 16,
+        },
+        tabBarIcon: ({ color, size }) => {
+          const map: Record<string, keyof typeof Ionicons.glyphMap> = {
+            index: "alarm",
+            leaderboard: "trophy",
+            settings: "settings",
+          };
+          return (
+            <Ionicons
+              name={map[route.name] ?? "ellipse"}
+              size={size}
+              color={color}
+            />
+          );
+        },
+      })}
+    >
+      <Tabs.Screen name="index" options={{ title: "Alarms" }} />
+      <Tabs.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
+      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+    </Tabs>
+  );
 }

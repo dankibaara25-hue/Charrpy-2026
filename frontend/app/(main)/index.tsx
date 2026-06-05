@@ -1,152 +1,247 @@
-// Main app placeholder. Real alarms / leaderboard / settings ship in M3.
-// Lives under `(main)` so it can host a bottom-tab navigator without showing
-// the segment name in URLs.
+// Alarms tab — title top-left + square 3D FAB top-right. Cards list each
+// alarm with a per-row enable Switch. Long-press a card to delete.
 
-import React, { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
-import Button3D from "@/src/components/Button3D";
+import EmptyState from "@/src/components/EmptyState";
+import {
+  Alarm,
+  deleteAlarm,
+  formatTime,
+  listAlarms,
+  repeatLabel,
+  saveAlarm,
+} from "@/src/lib/alarms";
 import { colors, fonts, radius, space, type } from "@/src/theme";
-import { storage } from "@/src/utils/storage";
-import { findAvatar } from "@/src/onboarding/avatars";
-import { useAuth } from "@/src/context/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "@/src/lib/firebase";
-import { useRouter } from "expo-router";
+import { findRingtone } from "@/src/onboarding/ringtones";
 
-export default function MainHome() {
+const FAB_DEPTH = 5;
+const CARD_DEPTH = 5;
+
+export default function AlarmsScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [nickname, setNickname] = useState<string>("friend");
-  const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const [fabPressed, setFabPressed] = useState(false);
 
-  useEffect(() => {
-    storage.getItem("charrpy.nickname", "").then((v) => {
-      if (typeof v === "string" && v) setNickname(v);
-    });
-    storage.getItem("charrpy.avatar.id", "").then((v) => {
-      if (typeof v === "string" && v) setAvatarId(v);
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      listAlarms().then((a) => {
+        if (alive) setAlarms(a);
+      });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
-  const avatar = findAvatar(avatarId);
+  const toggleEnabled = async (a: Alarm) => {
+    Haptics.selectionAsync().catch(() => {});
+    const next = await saveAlarm({ ...a, enabled: !a.enabled });
+    setAlarms(next);
+  };
 
-  const handleReset = async () => {
-    await signOut(auth).catch(() => {});
-    await storage.removeItem("charrpy.uid");
-    await storage.removeItem("charrpy.nickname");
-    await storage.removeItem("charrpy.avatar.id");
-    await storage.removeItem("charrpy.onboarding.completed");
-    await storage.removeItem("charrpy.onboarding.answers");
-    router.replace("/welcome");
+  const handleDelete = async (id: string) => {
+    const next = await deleteAlarm(id);
+    setAlarms(next);
   };
 
   return (
     <SafeAreaView
       style={styles.safe}
-      edges={["top", "bottom"]}
-      testID="main-home-screen"
+      edges={["top"]}
+      testID="alarms-screen"
     >
-      <View style={styles.body}>
-        {avatar ? (
-          <View style={styles.avatarWrap}>
-            <Image
-              source={avatar.source}
-              style={styles.avatar}
-              resizeMode="cover"
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <Text style={styles.title}>Alarms</Text>
+          <Text style={styles.subtitle}>
+            {alarms.length === 0
+              ? "Add your first alarm."
+              : `${alarms.length} ${alarms.length === 1 ? "alarm" : "alarms"} set.`}
+          </Text>
+        </View>
+        <Pressable
+          style={[styles.fab, fabPressed && styles.fabPressed]}
+          onPressIn={() => {
+            setFabPressed(true);
+            Haptics.selectionAsync().catch(() => {});
+          }}
+          onPressOut={() => setFabPressed(false)}
+          onPress={() => router.push("/alarm-edit")}
+          testID="alarms-fab-add"
+        >
+          <Ionicons name="add" size={28} color={colors.textInverse} />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      >
+        {alarms.length === 0 ? (
+          <EmptyState
+            title="No alarms yet."
+            hint="Tap the + button to add one."
+            testID="alarms-empty"
+          />
+        ) : (
+          alarms.map((a) => (
+            <AlarmCard
+              key={a.id}
+              alarm={a}
+              onPress={() => router.push(`/alarm-edit?id=${a.id}`)}
+              onToggle={() => toggleEnabled(a)}
+              onDelete={() => handleDelete(a.id)}
             />
-          </View>
-        ) : null}
-        <Text style={styles.hello}>hey {nickname} 👋</Text>
-        <Text style={styles.title}>You&apos;re in.</Text>
-        <Text style={styles.subtitle}>
-          Alarms, leaderboard and settings are next on the way.
-        </Text>
-
-        {user ? (
-          <View style={styles.uidPill}>
-            <Text style={styles.uidLabel}>Anon UID</Text>
-            <Text style={styles.uid} numberOfLines={1}>
-              {user.uid.slice(0, 16)}…
-            </Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.footer}>
-        <Button3D
-          label="Reset & start over"
-          variant="secondary"
-          onPress={handleReset}
-          testID="main-reset-button"
-        />
-      </View>
+          ))
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
+interface AlarmCardProps {
+  alarm: Alarm;
+  onPress: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}
+
+const AlarmCard: React.FC<AlarmCardProps> = ({
+  alarm,
+  onPress,
+  onToggle,
+  onDelete,
+}) => {
+  const [pressed, setPressed] = useState(false);
+  const ring = findRingtone(alarm.ringtoneId);
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onDelete}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      style={styles.cardWrap}
+      testID={`alarm-card-${alarm.id}`}
+    >
+      <View
+        style={[
+          styles.card,
+          {
+            borderBottomWidth: pressed ? 0 : CARD_DEPTH,
+            marginTop: pressed ? CARD_DEPTH : 0,
+            opacity: alarm.enabled ? 1 : 0.55,
+          },
+        ]}
+      >
+        <View style={styles.cardMain}>
+          <Text style={styles.cardTime}>{formatTime(alarm)}</Text>
+          <Text style={styles.cardMeta} numberOfLines={1}>
+            {repeatLabel(alarm)} · {ring?.label ?? "Ringtone"} ·{" "}
+            {alarm.challenge}
+          </Text>
+          {alarm.nickname ? (
+            <Text style={styles.cardNickname} numberOfLines={1}>
+              {alarm.nickname}
+            </Text>
+          ) : null}
+        </View>
+        <Switch
+          value={alarm.enabled}
+          onValueChange={onToggle}
+          trackColor={{ false: colors.track, true: colors.primary }}
+          thumbColor={colors.surface}
+          testID={`alarm-toggle-${alarm.id}`}
+        />
+      </View>
+    </Pressable>
+  );
+};
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  body: {
-    flex: 1,
-    paddingHorizontal: space.lg,
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.sm,
+    gap: space.md,
   },
-  avatarWrap: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    overflow: "hidden",
-    backgroundColor: colors.surface,
-    borderWidth: 3,
-    borderColor: colors.shadow,
-    borderBottomWidth: 6,
-    borderBottomColor: colors.shadow,
-    marginBottom: space.lg,
-  },
-  avatar: { width: "100%", height: "100%" },
-  hello: {
-    ...type.h3,
-    color: colors.textMuted,
-    fontFamily: fonts.medium,
-    marginBottom: space.xs,
-  },
+  headerText: { flex: 1 },
   title: {
-    ...type.h1,
+    ...type.display,
+    fontSize: 34,
+    lineHeight: 40,
     color: colors.textMain,
-    textAlign: "center",
-    marginBottom: space.sm,
   },
   subtitle: {
     ...type.body,
     color: colors.textMuted,
-    fontFamily: fonts.regular,
-    textAlign: "center",
-    marginBottom: space.xl,
+    fontFamily: fonts.medium,
+    marginTop: 2,
   },
-  uidPill: {
+  fab: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.shadow,
+    borderBottomWidth: FAB_DEPTH,
+    borderBottomColor: colors.shadow,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fabPressed: {
+    borderBottomWidth: 0,
+    marginTop: FAB_DEPTH,
+  },
+  list: { padding: space.lg, paddingBottom: 120 },
+  cardWrap: { marginBottom: 14 },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 2,
+    borderColor: colors.shadow,
+    borderBottomColor: colors.shadow,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.shadow,
+    gap: 12,
   },
-  uidLabel: {
-    ...type.small,
+  cardMain: { flex: 1 },
+  cardTime: {
     fontFamily: fonts.bold,
-    color: colors.primary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
+    fontSize: 32,
+    color: colors.textMain,
+    lineHeight: 36,
   },
-  uid: { ...type.small, color: colors.textMuted, maxWidth: 140 },
-  footer: {
-    paddingHorizontal: space.lg,
-    paddingBottom: space.md,
+  cardMeta: {
+    ...type.caption,
+    color: colors.textMuted,
+    fontFamily: fonts.medium,
+    marginTop: 2,
+    textTransform: "capitalize",
+  },
+  cardNickname: {
+    ...type.body,
+    color: colors.primary,
+    fontFamily: fonts.semibold,
+    marginTop: 4,
   },
 });

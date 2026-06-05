@@ -25,7 +25,7 @@ export default function SetAlarm() {
       "charrpy.alarm.time",
       `${time.hour}:${String(time.minute).padStart(2, "0")} ${time.meridiem}`,
     );
-    router.push("/paywall");
+    router.push("/ringtone-select");
   };
 
   return (

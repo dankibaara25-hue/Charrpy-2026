@@ -52,7 +52,7 @@ export default function Nickname() {
       await storage.setItem("charrpy.uid", cred.user.uid);
       await storage.setItem("charrpy.nickname", trimmed);
       await storage.setItem("charrpy.onboarding.completed", true);
-    router.replace("/ringtone-select");
+    router.replace("/set-alarm");
     } catch (e) {
       console.error("anon sign-in failed", e);
       setError("Couldn't create your account. Please try again.");

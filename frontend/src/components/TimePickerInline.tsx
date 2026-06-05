@@ -1,8 +1,10 @@
-// Minimal inline time picker — two scrollable wheels (hour + minute) plus an
-// AM/PM toggle. Avoids @react-native-community/datetimepicker so the picker
-// works inside Expo Go on web previews without extra native deps.
+// Compact inline time picker — three scrollable wheels (hour + minute) plus
+// an AM/PM toggle. Commits the selection on BOTH `onMomentumScrollEnd` (for
+// native flick-and-release) and `onScrollEndDrag` (for trackpad/mouse on
+// web preview, where momentum doesn't always fire). All four borders are
+// visible on the selection box so the focused row is obvious on cream BG.
 
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   FlatList,
   Pressable,
@@ -10,13 +12,16 @@ import {
   Text,
   View,
   ViewStyle,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 
 import { colors, fonts, radius } from "@/src/theme";
 
-const ITEM_HEIGHT = 48;
-const VISIBLE = 5; // odd so the center row is well defined
+const ITEM_HEIGHT = 40;
+const VISIBLE = 5;
 const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE;
+const WHEEL_WIDTH = 64;
 
 const range = (count: number, start: number = 0): number[] =>
   Array.from({ length: count }, (_, i) => i + start);
@@ -39,6 +44,41 @@ const Wheel: React.FC<WheelProps> = ({
   const ref = useRef<FlatList<number>>(null);
   const initialIndex = Math.max(0, data.indexOf(value));
 
+  // Keep the wheel in sync when the parent forces a new value (e.g. when
+  // hydrating an existing alarm for editing).
+  useEffect(() => {
+    const idx = data.indexOf(value);
+    if (idx >= 0) {
+      ref.current?.scrollToOffset({
+        offset: idx * ITEM_HEIGHT,
+        animated: false,
+      });
+    }
+  }, [data, value]);
+
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const commit = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(data.length - 1, idx));
+    const next = data[clamped];
+    if (next !== value) onChange(next);
+  };
+
+  // react-native-web doesn't fire onScrollEndDrag/onMomentumScrollEnd
+  // reliably for mouse-wheel / trackpad scrolls. Debouncing onScroll handles
+  // that path while native uses the regular end handlers.
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const ne = e.nativeEvent;
+    const idx = Math.round(ne.contentOffset.y / ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(data.length - 1, idx));
+    const next = data[clamped];
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => {
+      if (next !== value) onChange(next);
+    }, 140);
+  };
+
   return (
     <View style={styles.wheel} testID={testID}>
       <FlatList
@@ -55,11 +95,10 @@ const Wheel: React.FC<WheelProps> = ({
         })}
         initialScrollIndex={initialIndex}
         contentContainerStyle={{ paddingVertical: ITEM_HEIGHT * 2 }}
-        onMomentumScrollEnd={(e) => {
-          const idx = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
-          const clamped = Math.max(0, Math.min(data.length - 1, idx));
-          onChange(data[clamped]);
-        }}
+        onMomentumScrollEnd={commit}
+        onScrollEndDrag={commit}
+        onScroll={handleScroll}
+        scrollEventThrottle={32}
         renderItem={({ item }) => {
           const isCenter = item === value;
           return (
@@ -70,7 +109,7 @@ const Wheel: React.FC<WheelProps> = ({
                   {
                     color: isCenter ? colors.textMain : colors.textMuted,
                     fontFamily: isCenter ? fonts.bold : fonts.medium,
-                    opacity: isCenter ? 1 : 0.55,
+                    opacity: isCenter ? 1 : 0.45,
                   },
                 ]}
               >
@@ -86,8 +125,8 @@ const Wheel: React.FC<WheelProps> = ({
 };
 
 export interface TimeValue {
-  hour: number; // 1..12
-  minute: number; // 0..59
+  hour: number;
+  minute: number;
   meridiem: "AM" | "PM";
 }
 
@@ -132,7 +171,7 @@ export const TimePickerInline: React.FC<TimePickerInlineProps> = ({
                 styles.meridiemBtn,
                 {
                   backgroundColor: active ? colors.primary : colors.surface,
-                  borderColor: active ? colors.primaryDark : colors.surface,
+                  borderColor: active ? colors.primaryDark : colors.shadow,
                 },
               ]}
               testID={`time-picker-${m.toLowerCase()}`}
@@ -140,7 +179,7 @@ export const TimePickerInline: React.FC<TimePickerInlineProps> = ({
               <Text
                 style={[
                   styles.meridiemText,
-                  { color: active ? colors.textMain : colors.textMuted },
+                  { color: active ? colors.textInverse : colors.textMuted },
                 ]}
               >
                 {m}
@@ -158,16 +197,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 6,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 12,
+    borderWidth: 2,
+    borderColor: colors.shadow,
     borderBottomWidth: 4,
-    borderBottomColor: colors.surfaceShadow,
+    borderBottomColor: colors.shadow,
   },
   wheel: {
-    width: 80,
+    width: WHEEL_WIDTH,
     height: WHEEL_HEIGHT,
     overflow: "hidden",
   },
@@ -176,42 +217,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  wheelText: {
-    fontSize: 28,
-  },
+  wheelText: { fontSize: 22 },
   selectionLine: {
     position: "absolute",
-    left: 4,
-    right: 4,
+    left: 2,
+    right: 2,
     top: ITEM_HEIGHT * 2,
     height: ITEM_HEIGHT,
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
+    borderWidth: 2,
     borderColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 149, 0, 0.08)",
   },
   colon: {
     fontFamily: fonts.bold,
-    fontSize: 28,
+    fontSize: 22,
     color: colors.textMain,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
   },
   meridiemColumn: {
-    marginLeft: 8,
-    gap: 8,
+    marginLeft: 6,
+    gap: 6,
   },
   meridiemBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 2,
-    minWidth: 60,
+    minWidth: 48,
     alignItems: "center",
   },
   meridiemText: {
     fontFamily: fonts.bold,
-    fontSize: 16,
-    letterSpacing: 1,
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
 });
 

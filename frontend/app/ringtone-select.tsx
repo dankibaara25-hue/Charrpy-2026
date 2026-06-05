@@ -72,7 +72,7 @@ export default function RingtoneSelect() {
       /* noop */
     }
     await storage.setItem("charrpy.ringtone.id", selected);
-    router.push("/set-alarm");
+    router.push("/paywall");
   };
 
   return (

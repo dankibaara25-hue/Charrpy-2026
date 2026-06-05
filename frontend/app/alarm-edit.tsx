@@ -216,6 +216,13 @@ export default function AlarmEdit() {
           <>
             <View style={{ height: space.lg }} />
             <Button3D
+              label="Test alarm"
+              variant="secondary"
+              onPress={() => router.push(`/alarm-ring?id=${id}`)}
+              testID="alarm-test-button"
+            />
+            <View style={{ height: space.sm }} />
+            <Button3D
               label="Delete alarm"
               variant="secondary"
               onPress={handleDelete}

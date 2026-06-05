@@ -170,3 +170,70 @@ test_plan:
 agent_communication:
   -agent: "main"
   -message: "M3.1 done: added /notifications-permission between /ringtone-select and /paywall, plus full expo-notifications scheduling layer (foreground handler, alarm channel, schedule on saveAlarm, cancel on deleteAlarm). app.json plugin + permissions wired. Paywall remains skippable on web/dev. Please run end-to-end frontend flow: Splash -> Welcome -> Onboarding -> Avatar -> Nickname -> Set Alarm -> Ringtone -> NotificationsPermission ('Not now' or Allow) -> Paywall ('Continue to app') -> (main) Alarms tab. Verify all tabs (Alarms / Leaderboard / Settings) load. Create + toggle + delete an alarm. Note: native scheduling can't be verified on web, only that the JS layer doesn't throw."
+
+# ===== Iteration M5 — Wake-up Challenges (Barcode + Photo) =====
+
+frontend:
+  - task: "Barcode wake-up challenge"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/challenges/barcode.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Full-screen CameraView with orange dashed rectangular frame (Charrpy palette adaptation of the user-supplied dark-mode reference). Uses expo-camera v17 `useCameraPermissions` for contextual gating (Allow camera / Open settings if blocked). Lightning-bolt icon under the frame; instruction text 'Scan any barcode to dismiss the alarm'; orange Duolingo-style Back pill at the bottom. `onBarcodeScanned` accepts every common code type (QR, EAN, UPC, Code128, etc.) — first valid read stops the alarm audio, fires Haptics.Success, and replaces to /reward?from=barcode. On web the camera frame still renders + the copy gracefully degrades."
+
+  - task: "Photo capture wake-up challenge"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/challenges/photo.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Same camera chrome as barcode but with a SQUARE dashed frame. Random target object picked from /src/challenges/objects.ts on mount (water glass, fridge, toothbrush, kettle, sink, shoes, book, chair, window, plant, towel, mug, remote, fruit, water bottle — 15 entries, each with an emoji). Caption renders as 'Find <object>' with the emoji above. Once the camera reports `onCameraReady`, a 3-second countdown badge runs (with selection haptics each tick) then auto-fires `takePictureAsync` and replaces to /reward?from=photo&object=<id>. On web, takePictureAsync is skipped but the route still progresses so the flow can be QA'd end-to-end."
+
+  - task: "Alarm-ring delegates to camera challenges by alarm.challenge"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/alarm-ring.tsx, /app/frontend/app/alarm-edit.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "alarm-ring.tsx now checks alarm.challenge: 'barcode' → router.replace(/challenges/barcode?id=...); 'photo' → router.replace(/challenges/photo?id=...); 'math' → existing inline math UI but final success now navigates to /reward?from=math instead of router.back(). Removed the '(Pro)' suffix from barcode/photo labels in alarm-edit since they're now functional. Each challenge screen owns its own audio via the new `useAlarmAudio` hook (src/challenges/useAlarmAudio.ts) so the ringtone keeps playing throughout."
+
+  - task: "Reward screen (placeholder for streak/XP)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/reward.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Charrpy-styled reward screen: 3D trophy badge, NICE WORK kicker, dynamic headline driven by ?from= (barcode/photo/math), 3D stat cards (+1 Streak, +25 XP) as PLACEHOLDERS. Continue button routes to /(main). The streak/XP visual treatment is intentionally minimal — the full design will land in the next user iteration once they share guidelines."
+
+  - task: "Camera permission + plugin wiring (app.json)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app.json"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Added expo-camera plugin with `cameraPermission` usage description ('Charrpy needs the camera to scan barcodes and snap target photos so you can dismiss your alarm.'). Added CAMERA to Android permissions array. recordAudioAndroid disabled. Plus the pre-existing notification permission flow remains untouched."
+
+agent_communication:
+  -agent: "main"
+  -message: "M5 done — wake-up barcode + photo challenges. Smoke-tested visually on web preview: barcode page renders the orange dashed rectangle + lightning icon + Back pill exactly like the reference (palette adapted to warm-cream/orange). Photo page renders the square dashed frame + countdown badge + random emoji + object prompt. Reward screen routes correctly. Please run end-to-end: (1) open /alarm-edit, change Action to Barcode, save, tap Test alarm → expect /challenges/barcode + Back pill works. (2) Set Action=Photo, Test → expect 3s countdown then auto-redirect to /reward. (3) Set Action=Math, Test → existing math flow but on completion now routes to /reward?from=math. (4) Reward screen Continue → /(main). No regressions to onboarding/auth/paywall expected."

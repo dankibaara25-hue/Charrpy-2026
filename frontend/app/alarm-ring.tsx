@@ -62,6 +62,23 @@ export default function AlarmRing() {
       const a = id ? await getAlarm(id) : undefined;
       const target = a ?? defaultAlarm();
       if (!alive) return;
+
+      // Non-math challenges live on their own camera-based screens. Hand
+      // off immediately so the user lands in the right experience while
+      // the alarm is ringing. Each challenge screen owns its own audio.
+      if (target.challenge === "barcode") {
+        router.replace(
+          id ? `/challenges/barcode?id=${id}` : "/challenges/barcode",
+        );
+        return;
+      }
+      if (target.challenge === "photo") {
+        router.replace(
+          id ? `/challenges/photo?id=${id}` : "/challenges/photo",
+        );
+        return;
+      }
+
       setAlarm(target);
 
       const ring = findRingtone(target.ringtoneId);
@@ -145,9 +162,9 @@ export default function AlarmRing() {
       const nextSolved = solvedIdx + 1;
       setInput("");
       if (nextSolved >= REQUIRED_CORRECT) {
-        // All done — kill audio + leave.
+        // All done — kill audio + show reward.
         stopAudio();
-        setTimeout(() => router.back(), 400);
+        setTimeout(() => router.replace("/reward?from=math"), 400);
       } else {
         setTimeout(() => {
           setSolvedIdx(nextSolved);

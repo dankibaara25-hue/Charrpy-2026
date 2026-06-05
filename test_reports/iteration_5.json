@@ -1,0 +1,59 @@
+{
+  "summary": "Frontend-only E2E on mobile viewport 390x844 against https://wake-up-challenge-5.preview.emergentagent.com. ALL spec scenarios (A-E) PASS. (A) No-regression: full happy path Welcome → Onboarding (15 continue iters cleared all steps) → Avatar (19 tiles) → Nickname (earlybird) → Firebase anon sign-in → Set Alarm → Ringtone (selected Classic) → Notifications-Permission (skipped via 'Not now') → Paywall (Continue to app) → /(main) Alarms tab — fully green. (B) Barcode flow: + FAB → /alarm-edit → Action sheet → 'Barcode' option selected → row updated to 'Barcode' → Save (✓) returns to alarms list with new card meta '7:00 AM · Daily · Classic Alarm · barcode' → tapping card reopens /alarm-edit → 'Test alarm' navigates to /alarm-ring?id=... which immediately router.replace's to /challenges/barcode?id=...; with camera permission granted via page.context.grant_permissions(['camera']) the camera UI renders the orange dashed RECT frame, lightning-bolt icon, the exact spec copy 'Web preview can't read barcodes — try a real device.', and the orange 'Back' pill — all testIDs (barcode-challenge-screen, barcode-frame, barcode-hint, barcode-back-button) present. Without granted camera perm the contextual permission gate is shown with 'Allow camera' CTA + tiny 'Back' — also correct per the handle_permissions_contract. (C) Photo flow: same setup with Action=Photo → meta shows 'photo' → Test alarm routes to /challenges/photo?id=... → with camera granted the 3-second countdown auto-fires and auto-routes to /reward?from=photo&object=<id> with headline 'Photo locked in!'. (D) Reward direct-load verified for all 3 query strings: ?from=barcode → 'Barcode scanned!', ?from=photo → 'Photo locked in!', no-param → 'Wake-up complete!' (also used for from=math by current reward.tsx, matches spec). Continue button routes to /(main) and Alarms tab loads. (E) Math regression: alarm-ring screen renders with QUESTION 1 OF 3 progress bar, equation card ('51 − 42'), numpad keys 0-9 + clear (↻) + submit (➤) and back — UI fully intact. Routing on solve-3 to /reward?from=math is wired in alarm-ring.tsx L167 (router.replace('/reward?from=math')). New testIDs verified: barcode-challenge-screen, barcode-permission-gate, barcode-allow-camera, barcode-frame, barcode-hint, barcode-back-button, photo-challenge-screen, photo-permission-gate, photo-allow-camera, photo-frame, photo-hint, photo-back-button, reward-screen, reward-continue-button. Console shows two pre-existing non-blocking deprecation warnings + one NEW one introduced this iteration: 'textShadow*' style props deprecation triggered by CameraChrome.tsx hintText (textShadowColor/textShadowOffset/textShadowRadius). One audio autoplay PAGEERROR ('play() failed because the user didn't interact') fires when /challenges/barcode and /challenges/photo mount and useAlarmAudio attempts to play the alarm tone without a user gesture — non-blocking (UI renders fine, but uncaught at promise level). Deprecated packages detected: none new this iteration. SafeAreaView issues detected: none.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {
+        "component": "CameraChrome.hintText",
+        "issue": "NEW this iteration: 'textShadow*' style props are deprecated. Use 'textShadow' shorthand. Triggered by /app/frontend/src/challenges/CameraChrome.tsx ~L158-160 (textShadowColor / textShadowOffset / textShadowRadius). Console-only on web; harmless but should be migrated to the new RN style shorthand."
+      },
+      {
+        "component": "TimePickerInline",
+        "issue": "Carry-over from iter 1/2/4: 'props.pointerEvents is deprecated. Use style.pointerEvents' still fires on /set-alarm and /alarm-edit. Migrate <View pointerEvents=\"none\"> to style={{ pointerEvents: 'none' }}. Reference: /app/frontend/src/components/TimePickerInline.tsx (~L83)."
+      },
+      {
+        "component": "useAlarmAudio / alarm autoplay",
+        "issue": "On web, /challenges/barcode and /challenges/photo mount useAlarmAudio which calls expo-audio play() without a prior user gesture, producing an uncaught PAGEERROR: 'play() failed because the user didn't interact with the document first.' The createAudioPlayer().play() promise is not awaited / caught. Wrap in try/catch + .catch(() => {}) on the returned promise in /app/frontend/src/challenges/useAlarmAudio.ts so the autoplay rejection on web is swallowed (same pattern as alarm-ring.tsx L86-94 already does for the synchronous throw)."
+      },
+      {
+        "component": "DashedFrame",
+        "issue": "DashedFrame passes shape='rect' (aspect 16/9). Spec says 'rectangular' for barcode — visually verified ✓. shape='square' for photo — visually verified ✓ (screenshot before auto-route confirms square frame). No code issue, just confirming."
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_5.json",
+    "/app/test_reports/iteration_4.json",
+    "/app/test_reports/iteration_3.json"
+  ],
+  "action_items": [
+    "Optional (non-blocking): in /app/frontend/src/challenges/CameraChrome.tsx hintText style, replace textShadowColor/textShadowOffset/textShadowRadius with the new RN style shorthand `textShadow: '0px 1px 6px rgba(0,0,0,0.45)'` to silence the deprecation warning introduced this iteration.",
+    "Optional (non-blocking): in /app/frontend/src/challenges/useAlarmAudio.ts wrap the expo-audio player.play() call in a try/catch and attach a .catch(() => {}) on the returned promise so web autoplay rejection (NotAllowedError) doesn't surface as an uncaught PAGEERROR when /challenges/barcode and /challenges/photo mount on the web preview.",
+    "Optional (carry-over): fix the pointerEvents deprecation in /app/frontend/src/components/TimePickerInline.tsx (~L83).",
+    "No functional bugs require a fix. Iteration is GREEN — all 5 spec sections (A-E) pass."
+  ],
+  "critical_code_review_comments": [
+    "challenges/barcode.tsx and challenges/photo.tsx correctly use useCameraPermissions() with a contextual pre-permission Charrpy gate (NOT bare OS prompt on mount), handle the canAskAgain=false fork with Open Settings, and route stop() before router.back() — clean.",
+    "challenges/photo.tsx: cameraReady gate + 3s setInterval + handledRef guard prevents double-capture and double-route. Platform.OS check around takePictureAsync skips the call on web so we don't crash. encodeURIComponent on target.id is correct.",
+    "alarm-ring.tsx delegation: lines 69-80 router.replace early-return for barcode/photo BEFORE audio player creation — prevents leaking an AudioPlayer instance when the user has selected a camera-based challenge. Math success at L167 routes to /reward?from=math. stopAudio() is called before the redirect.",
+    "reward.tsx: 'from' parsed via useLocalSearchParams; ternary headline mapping is correct; Continue uses router.replace('/(main)') so user can't /back into the reward screen — good for UX. trophy badge + +1/+25 placeholder stat cards render correctly.",
+    "src/challenges/CameraChrome.tsx: DashedFrame uses aspectRatio 16/9 for rect and 1 for square — visually matches spec. BottomPill uses Pressable with onPressIn/Out for the 3D press effect — clean. NOTE: pointerEvents='none' on frameWrap (L33) will start triggering the same deprecation as TimePickerInline on a future RN version; consider moving to style.pointerEvents='none'.",
+    "src/challenges/objects.ts: 15 target objects with emoji, pickRandomTarget uses Math.floor(Math.random()*length) — correct. Labels are user-friendly ('a glass of water', 'your toothbrush', etc.).",
+    "alarm-edit.tsx CHALLENGES array (L38-42) no longer has the '(Pro)' suffix on Barcode/Photo — verified by inspection and by action-sheet rendering 'Barcode' / 'Photo' plain labels in the test run.",
+    "app.json was not re-inspected by the agent in this iteration but the expo-camera plugin and CAMERA permission are required for the new screens — main agent should verify the entries are present (preview built green so likely OK).",
+    "All new screens have testIDs on the root SafeAreaView and on every interactive element — meets the testing contract."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only)",
+    "frontend": "100% — 5/5 spec sections (A no-regression, B barcode, C photo, D reward, E math) pass. New testIDs all wired."
+  },
+  "seed_data_creation": "Walked the happy path (nickname='earlybird', avatar tile [0], ringtone='classic', default 7:00 AM alarm). Created 3 alarms during the test run (barcode + photo + math, each 7:00 AM Daily Classic). Persisted localStorage keys: charrpy.uid, charrpy.nickname, charrpy.avatar.id, charrpy.ringtone.id, charrpy.alarm.time, charrpy.alarms, charrpy.onboarding.*",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "To bypass the long onboarding walk in subsequent runs, use page.context.grant_permissions(['camera'], origin=<preview>) BEFORE visiting any /challenges/* route, then walk the onboarding once. The challenge screens are permission-gated: without granted camera you'll only see the Charrpy 'Camera needed' gate (testID barcode-permission-gate / photo-permission-gate); with granted camera the full camera UI renders (barcode-challenge-screen / photo-challenge-screen). The photo screen auto-routes to /reward?from=photo&object=<id> ~3s after onCameraReady fires — wait at least 5s on /challenges/photo before asserting the reward URL. Math regression uses a UNICODE minus '−' (U+2212) on the alarm-ring equation, NOT ASCII '-' — regex parsers must include U+2212 to read the equations programmatically. Reward headlines: 'Barcode scanned!' / 'Photo locked in!' / 'Wake-up complete!' (used for both no-param and from=math). New testIDs introduced this iteration: barcode-challenge-screen, barcode-permission-gate, barcode-allow-camera, barcode-open-settings, barcode-permission-back, barcode-frame, barcode-hint, barcode-back-button, photo-challenge-screen, photo-permission-gate, photo-allow-camera, photo-open-settings, photo-permission-back, photo-frame, photo-hint, photo-back-button, reward-screen, reward-continue-button.",
+  "rca_of_issue": "No functional bugs. One uncaught web PAGEERROR (audio autoplay) surfaces when /challenges/barcode and /challenges/photo mount on the web preview because useAlarmAudio kicks off expo-audio play() without a prior user gesture and the returned promise isn't .catch()'d. Mitigation: in src/challenges/useAlarmAudio.ts wrap the play() call's promise: `try { const p = createAudioPlayer(...).play(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch {}`. Reproduces 100% on web preview; never reproduces on native because native autoplay is permitted. Non-blocking."
+}

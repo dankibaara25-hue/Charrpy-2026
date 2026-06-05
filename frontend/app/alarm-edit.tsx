@@ -37,8 +37,8 @@ import { RINGTONES, findRingtone } from "@/src/onboarding/ringtones";
 
 const CHALLENGES: { id: ChallengeKind; label: string; hint: string }[] = [
   { id: "math", label: "Math", hint: "Solve a quick equation" },
-  { id: "barcode", label: "Barcode", hint: "Scan a barcode (Pro)" },
-  { id: "photo", label: "Photo", hint: "Snap a target photo (Pro)" },
+  { id: "barcode", label: "Barcode", hint: "Scan any barcode in your home" },
+  { id: "photo", label: "Photo", hint: "Snap a random household object" },
 ];
 
 const REPEAT_OPTIONS: { id: Repeat; label: string }[] = [

@@ -25,7 +25,8 @@
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM",
         "WAKE_LOCK",
-        "VIBRATE"
+        "VIBRATE",
+        "CAMERA"
       ]
     },
     "web": {
@@ -51,6 +52,13 @@
         {
           "color": "#FF9500",
           "defaultChannel": "charrpy-alarms"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Charrpy needs the camera to scan barcodes and snap target photos so you can dismiss your alarm.",
+          "recordAudioAndroid": false
         }
       ]
     ],

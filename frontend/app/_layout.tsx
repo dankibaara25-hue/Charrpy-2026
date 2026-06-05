@@ -9,9 +9,15 @@ import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { useAppFonts } from "@/src/hooks/use-app-fonts";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { colors } from "@/src/theme";
+import { configureForegroundHandler } from "@/src/lib/notifications";
 
 // Keep the native splash visible from cold start until icon fonts register.
 SplashScreen.preventAutoHideAsync();
+
+// Configure foreground notification handling once at module load so any
+// scheduled alarm that fires while the app is open still shows the OS
+// banner + plays a sound.
+configureForegroundHandler();
 
 export default function RootLayout() {
   const [iconsLoaded, iconsError] = useIconFonts();

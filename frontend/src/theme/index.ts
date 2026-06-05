@@ -34,9 +34,9 @@ export const fonts = {
 } as const;
 
 export const type = {
-  display: { fontFamily: fonts.bold, fontSize: 32, lineHeight: 38, letterSpacing: 0.5 },
-  h1: { fontFamily: fonts.bold, fontSize: 26, lineHeight: 32, letterSpacing: 0.25 },
-  h2: { fontFamily: fonts.semibold, fontSize: 20, lineHeight: 26 },
+  display: { fontFamily: fonts.semibold, fontSize: 32, lineHeight: 38, letterSpacing: 0.5 },
+  h1: { fontFamily: fonts.semibold, fontSize: 26, lineHeight: 32, letterSpacing: 0.25 },
+  h2: { fontFamily: fonts.medium, fontSize: 20, lineHeight: 26 },
   h3: { fontFamily: fonts.medium, fontSize: 17, lineHeight: 24 },
   body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
   bodyBold: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22 },

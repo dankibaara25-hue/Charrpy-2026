@@ -1,9 +1,16 @@
-// Local alarm store. Persists an array of alarms in storage so the user's
-// list survives reloads. Will migrate to Firestore in a later milestone, but
-// the shape here is already designed to be Firestore-friendly (flat fields,
-// JSON-serialisable, no class instances).
+// Local alarm store + native scheduler. Persists an array of alarms in
+// storage so the user's list survives reloads, and keeps the OS-level
+// notification schedule in sync via expo-notifications. Will migrate the
+// persistence layer to Firestore in a later milestone, but the shape here
+// is already designed to be Firestore-friendly (flat fields, JSON-
+// serialisable, no class instances).
 
 import { storage } from "@/src/utils/storage";
+import {
+  cancelScheduled,
+  scheduleAlarm,
+  type ScheduleAlarmInput,
+} from "@/src/lib/notifications";
 
 export type Meridiem = "AM" | "PM";
 export type Repeat = "once" | "daily" | "weekdays" | "weekends" | "custom";
@@ -24,6 +31,10 @@ export interface Alarm {
   volume: number; // 0..1
   crescendo: boolean;
   createdAt: number;
+  // IDs returned by expo-notifications for the live OS-level schedule. We
+  // keep them here so we can cancel + reschedule when the alarm is edited
+  // or disabled.
+  notifIds?: string[];
 }
 
 const KEY = "charrpy.alarms";
@@ -46,9 +57,10 @@ export const defaultAlarm = (ringtoneId = "classic"): Alarm => ({
   volume: 0.7,
   crescendo: false,
   createdAt: Date.now(),
+  notifIds: [],
 });
 
-export async function listAlarms(): Promise<Alarm[]> {
+const readAll = async (): Promise<Alarm[]> => {
   const raw = await storage.getItem(KEY, "");
   if (!raw || typeof raw !== "string") return [];
   try {
@@ -57,25 +69,66 @@ export async function listAlarms(): Promise<Alarm[]> {
   } catch {
     return [];
   }
+};
+
+const writeAll = async (all: Alarm[]): Promise<void> => {
+  await storage.setItem(KEY, JSON.stringify(all));
+};
+
+export async function listAlarms(): Promise<Alarm[]> {
+  return readAll();
 }
 
+const buildSchedulePayload = (a: Alarm): ScheduleAlarmInput => ({
+  id: a.id,
+  hour: a.hour,
+  minute: a.minute,
+  meridiem: a.meridiem,
+  repeat: a.repeat,
+  customDays: a.customDays,
+  title: a.nickname ? `🐤 ${a.nickname}` : "🐤 Time to rise!",
+  body: "Tap to complete your wake-up challenge.",
+});
+
+const syncSchedule = async (a: Alarm): Promise<Alarm> => {
+  // Always cancel previous OS-level schedule for this alarm.
+  if (a.notifIds && a.notifIds.length) {
+    await cancelScheduled(a.notifIds);
+  }
+  if (!a.enabled) return { ...a, notifIds: [] };
+  const ids = await scheduleAlarm(buildSchedulePayload(a));
+  return { ...a, notifIds: ids };
+};
+
 export async function saveAlarm(next: Alarm): Promise<Alarm[]> {
-  const all = await listAlarms();
+  const all = await readAll();
   const idx = all.findIndex((a) => a.id === next.id);
-  if (idx >= 0) all[idx] = next;
-  else all.unshift(next);
-  await storage.setItem(KEY, JSON.stringify(all));
+  // If we're editing, fold in the previous notifIds so syncSchedule can
+  // cancel the stale ones.
+  const previousIds = idx >= 0 ? all[idx].notifIds ?? [] : [];
+  const synced = await syncSchedule({
+    ...next,
+    notifIds: [...previousIds, ...(next.notifIds ?? [])],
+  });
+  if (idx >= 0) all[idx] = synced;
+  else all.unshift(synced);
+  await writeAll(all);
   return all;
 }
 
 export async function deleteAlarm(id: string): Promise<Alarm[]> {
-  const all = (await listAlarms()).filter((a) => a.id !== id);
-  await storage.setItem(KEY, JSON.stringify(all));
-  return all;
+  const all = await readAll();
+  const target = all.find((a) => a.id === id);
+  if (target?.notifIds?.length) {
+    await cancelScheduled(target.notifIds);
+  }
+  const next = all.filter((a) => a.id !== id);
+  await writeAll(next);
+  return next;
 }
 
 export async function getAlarm(id: string): Promise<Alarm | undefined> {
-  const all = await listAlarms();
+  const all = await readAll();
   return all.find((a) => a.id === id);
 }
 

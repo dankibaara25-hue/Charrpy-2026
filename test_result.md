@@ -101,3 +101,72 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+user_problem_statement: "Gamified mobile alarm app Charrpy (Expo Router + Firebase Anon Auth + RevenueCat). User asked to: (1) make paywall skippable in dev mode, (2) use expo-notifications for native alarm scheduling, (3) add a 'allow notifications' onboarding step right after Ringtone selection and BEFORE the paywall."
+
+frontend:
+  - task: "Notification permission onboarding step (post-ringtone, pre-paywall)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/notifications-permission.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "New route /notifications-permission. Wires expo-notifications request flow per <handle_permissions_contract>: probes current status on mount, shows pre-permission explainer + 3 benefit bullets, primary button switches between Allow / Asking / Open Settings depending on canAskAgain. 'Not now' skip routes straight to /paywall. Reachable via ringtone-select -> notifications-permission -> paywall. Verified visually on web (screenshot captured)."
+
+  - task: "Wire ringtone-select -> notifications-permission -> paywall"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/ringtone-select.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "ringtone-select Continue now pushes /notifications-permission. notifications-permission replaces to /paywall on grant or 'Not now'. Paywall has 'Continue to app' fallback that routes to /(main) (dev-skippable as requested)."
+
+  - task: "Native alarm scheduling via expo-notifications"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/lib/notifications.ts, /app/frontend/src/lib/alarms.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Created notifications.ts with setNotificationHandler (banner+sound+list while foregrounded), Android 'charrpy-alarms' channel (MAX importance, bypassDnd, public lockscreen) so notifications behave like an alarm clock. scheduleAlarm() supports once/daily/weekdays/weekends/custom triggers. alarms.ts saveAlarm/deleteAlarm now sync OS-level scheduled IDs. app.json: added expo-notifications plugin + Android permissions (POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, USE_EXACT_ALARM, WAKE_LOCK, VIBRATE) + iOS UIBackgroundModes:[audio]. Splash bg color updated to warm cream (#FFF6E5). NOTE: native ringing-when-locked alarm behavior is a development-build-only feature (won't fire from Expo Go on iOS); user has been informed."
+
+  - task: "Paywall skippable in dev / browser mode"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/paywall.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Existing paywall already exposes a 'Continue to app' Button3D that routes to /(main). On platforms without RevenueCat (web / Expo Go), Billing.web returns 'cancelled' and the explainer + CTA render, keeping the user unblocked. On native it auto-presents RevenueCatUI.presentPaywall, then routes to /(main) on purchased/restored."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.1"
+  test_sequence: 2
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Notification permission onboarding step (post-ringtone, pre-paywall)"
+    - "Wire ringtone-select -> notifications-permission -> paywall"
+    - "Native alarm scheduling via expo-notifications"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  -agent: "main"
+  -message: "M3.1 done: added /notifications-permission between /ringtone-select and /paywall, plus full expo-notifications scheduling layer (foreground handler, alarm channel, schedule on saveAlarm, cancel on deleteAlarm). app.json plugin + permissions wired. Paywall remains skippable on web/dev. Please run end-to-end frontend flow: Splash -> Welcome -> Onboarding -> Avatar -> Nickname -> Set Alarm -> Ringtone -> NotificationsPermission ('Not now' or Allow) -> Paywall ('Continue to app') -> (main) Alarms tab. Verify all tabs (Alarms / Leaderboard / Settings) load. Create + toggle + delete an alarm. Note: native scheduling can't be verified on web, only that the JS layer doesn't throw."

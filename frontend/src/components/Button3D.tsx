@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   label: {
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 18,
     letterSpacing: 1,
     textTransform: "uppercase",

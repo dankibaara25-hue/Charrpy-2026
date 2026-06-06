@@ -128,12 +128,12 @@ export default function EditProfile() {
         bottomOffset={140}
       >
         {/* Banner avatar */}
-        <View style={styles.banner}>
+        <View style={[styles.banner, { backgroundColor: avatar?.bgColor ?? colors.avatarBg }]}>
           {avatar ? (
             <Image
               source={avatar.source}
               style={styles.bannerImg}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           ) : (
             <View style={styles.bannerPlaceholder}>
@@ -178,7 +178,7 @@ export default function EditProfile() {
                     borderBottomColor: selected
                       ? colors.primaryDark
                       : colors.shadow,
-                    backgroundColor: selected ? "#FFE3BD" : colors.surface,
+                    backgroundColor: a.bgColor,
                   },
                 ]}
                 testID={`edit-profile-avatar-${a.id}`}
@@ -186,7 +186,7 @@ export default function EditProfile() {
                 <Image
                   source={a.source}
                   style={styles.avatarImg}
-                  resizeMode="cover"
+                  resizeMode="contain"
                 />
               </Pressable>
             );
@@ -245,7 +245,6 @@ const styles = StyleSheet.create({
   banner: {
     width: "100%",
     height: BANNER_HEIGHT,
-    backgroundColor: "#FFE3BD",
     overflow: "hidden",
   },
   bannerImg: { width: "100%", height: "100%" },

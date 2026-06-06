@@ -98,11 +98,11 @@ export default function Nickname() {
         bottomOffset={120}
       >
         {avatar ? (
-          <View style={styles.avatarWrap}>
+          <View style={[styles.avatarWrap, { backgroundColor: avatar.bgColor }]}>
             <Image
               source={avatar.source}
               style={styles.avatar}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           </View>
         ) : null}
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     height: 132,
     borderRadius: 66,
     overflow: "hidden",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.avatarBg,
     borderWidth: 3,
     borderColor: colors.shadow,
     borderBottomWidth: 6,

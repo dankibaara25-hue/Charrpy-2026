@@ -25,7 +25,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import Button3D from "@/src/components/Button3D";
-import { findAvatar } from "@/src/onboarding/avatars";
+import { DEFAULT_BANNER_BG, findAvatar } from "@/src/onboarding/avatars";
 import { getUserProfile } from "@/src/lib/userProfile";
 import { readStreak } from "@/src/lib/streak";
 import { readXp } from "@/src/lib/xp";
@@ -33,7 +33,6 @@ import { colors, fonts, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
 
 const APP_URL = "https://www.charrpy.com";
-const BANNER_BG = "#FFE3BD"; // soft tan — also used to tint the status bar
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -75,6 +74,10 @@ export default function ProfileTab() {
   );
 
   const avatar = findAvatar(avatarId);
+  // The banner + status-bar pull their tint from the avatar so the top of
+  // the screen reads as one coherent color with the character. Falls back
+  // to the on-brand tan when no avatar has been picked yet.
+  const bannerBg = avatar?.bgColor ?? DEFAULT_BANNER_BG;
 
   const handleShare = useCallback(async () => {
     Haptics.selectionAsync().catch(() => {});
@@ -96,10 +99,10 @@ export default function ProfileTab() {
           backdrop achieves the same effect. */}
       <StatusBar
         style="dark"
-        backgroundColor={Platform.OS === "android" ? BANNER_BG : undefined}
+        backgroundColor={Platform.OS === "android" ? bannerBg : undefined}
       />
 
-      <View style={styles.banner}>
+      <View style={[styles.banner, { backgroundColor: bannerBg }]}>
         <SafeAreaView edges={["top"]} style={styles.bannerSafeArea}>
           <View style={styles.bannerTopRow}>
             <Text
@@ -193,7 +196,6 @@ const styles = StyleSheet.create({
   banner: {
     width: "100%",
     height: BANNER_HEIGHT,
-    backgroundColor: BANNER_BG,
     overflow: "hidden",
   },
   bannerSafeArea: {

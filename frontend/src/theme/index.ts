@@ -24,6 +24,10 @@ export const colors = {
   track: "#F2DCB0",
   danger: "#E03B2C",
   success: "#2A9D47",
+  // Soft off-white / lightest hue of gray used as the avatar circle/banner
+  // background. The avatar SVGs are transparent, so we tint the container
+  // behind them via this single brand-managed color (see avatars.ts).
+  avatarBg: "#EDEDEF",
 } as const;
 
 export const fonts = {

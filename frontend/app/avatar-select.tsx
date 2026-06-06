@@ -73,6 +73,7 @@ export default function AvatarSelect() {
               key={a.id}
               source={a.source}
               size={tileSize}
+              bgColor={a.bgColor}
               selected={selected === a.id}
               onPress={() => {
                 setSelected(a.id);
@@ -104,12 +105,13 @@ interface AvatarTileProps {
   testID: string;
 }
 
-const AvatarTile: React.FC<AvatarTileProps> = ({
+const AvatarTile: React.FC<AvatarTileProps & { bgColor: string }> = ({
   source,
   size,
   selected,
   onPress,
   testID,
+  bgColor,
 }) => {
   const [pressed, setPressed] = useState(false);
   return (
@@ -130,11 +132,14 @@ const AvatarTile: React.FC<AvatarTileProps> = ({
             borderBottomColor: selected ? colors.primaryDark : colors.shadow,
             borderBottomWidth: pressed ? 0 : DEPTH,
             marginTop: pressed ? DEPTH : 0,
-            backgroundColor: selected ? colors.primary : colors.surface,
+            // Always show the avatar's background tint behind the
+            // transparent character. When selected we add a thicker
+            // primary border (above) so the highlight is still obvious.
+            backgroundColor: bgColor,
           },
         ]}
       >
-        <Image source={source} style={styles.image} resizeMode="cover" />
+        <Image source={source} style={styles.image} resizeMode="contain" />
         {selected ? (
           <View style={styles.check}>
             <Ionicons name="checkmark" size={18} color={colors.textInverse} />

@@ -330,3 +330,95 @@ frontend:
 agent_communication:
   -agent: "main"
   -message: "M8 — repo went public, downloaded all 34 mp3 ringtones, wired them in. Onboarding step ringtone-select now shows the curated first 5; alarm-edit Sound picker shows the full library inside a scrollable sheet. Screenshots confirm both screens render with the new labels. Please run: (1) /ringtone-select renders exactly 5 rows with new labels (Classic, Piano Musical, Tropical Marimba, Celestial Calm, Modern HD); (2) /alarm-edit Sound picker opens and shows >5 rows (target 34) inside a scrollable container — verify by scrolling, the bottom of the picker should reveal additional entries like Aqua / Salsa / Super Alarm; (3) all earlier flows (math/barcode/photo challenges, streak, paywall, etc.) still pass; (4) confirm no 'undefined ringtone source' errors when alarm-ring loads (some legacy storage keys may reference old IDs like chime/gentle/pop/melody that no longer exist — these will fall through to findRingtone returning undefined and the audio just won't play, which is acceptable for stale data)."
+
+# ===== Iteration M9 — XP screen, Vision verification, Preview button =====
+
+backend:
+  - task: "Vision verify-object endpoint (Gemini 2.5 Flash)"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/vision.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      -working: true
+        -agent: "main"
+        -comment: "POST /api/vision/verify-object accepts { image_base64, target_object } and returns { match, confidence, reasoning } using gemini-2.5-flash via emergentintegrations. Curl-tested with a cartoon avatar PNG: matched 'a cartoon avatar' = true/0.95, and 'a glass of water' = false/1.0 correctly rejected. EMERGENT_LLM_KEY added to /app/backend/.env. send_message() used (not streaming) since this is a single yes/no verify, not chat."
+
+frontend:
+  - task: "XP reward screen (new /xp route)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/xp.tsx, /app/frontend/src/lib/xp.ts, /app/frontend/src/hooks/use-one-shot-sfx.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "New /xp screen reached from /reward Continue. Layout adapts the user-supplied reference (purple 'You won X XP!' mock) into Charrpy's warm-cream palette: big 220×220 purple circular badge with 3D depth, dynamic 'You won X XP!' headline + per-challenge flavour ('Brain in gear.' / 'Nice scan.' / 'Sharp shot.'), confetti dot accents, Continue → /(main). XP formula: base 20 + challenge bonus (math 0 / barcode 10 / photo 20) + streakBonus min(streakDays*2, 30), rounded to nearest 5. Per-day idempotent via charrpy.xp.last_award stamp. tada-fanfare.mp3 plays once on mount via useOneShotSfx hook (auto-cleans up: pause+remove player on unmount — no memory leak)."
+
+  - task: "Streak page plays trumpet fanfare on mount; chains to /xp"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/reward.tsx, /app/frontend/assets/audio/sfx/streak-fanfare.mp3"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Streak page now plays the success-fanfare-trumpets.mp3 SFX via useOneShotSfx (volume 0.8, auto-cleanup). Removed inline +25 XP placeholder line (XP screen owns that now). Continue button routes to /xp?from=<challenge> instead of going straight to /(main), so users see the full streak → xp sequence."
+
+  - task: "Photo challenge — real vision verification (no more auto-pass)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/challenges/photo.tsx, /app/frontend/src/lib/vision.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Rewrote the photo challenge as a proper state machine: framing → verifying → matched|no_match → retry. User now presses an explicit white round shutter button (instead of a 3s auto-countdown that captured anything). Captured frame is base64-encoded and POSTed to /api/vision/verify-object with the prompted target. If match → success haptic + route to /reward?from=photo. If no_match → 'Try again' pill with the vision model's reason (e.g. 'That looks like a wall, not a kettle.'). AbortController cleans up in-flight fetches on unmount."
+
+  - task: "Alarm-edit Sound picker: audio preview without auto-dismiss"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/alarm-edit.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Sound action-sheet selection no longer dismisses the drawer. Tapping a row now (1) saves it as the selection, (2) plays a preview clip via a ref-based AudioPlayer (pause+remove previous, then play new — no overlap), (3) updates the row icon to 'volume-high'. User must hit the explicit 'Done' button or the X to close the sheet. Audio is torn down on Done, on backdrop dismiss, when the sheet changes, and on component unmount — covered by 3 separate effects/closures so there are no leak paths."
+
+  - task: "Alarm-edit: removed 'Test alarm' button; Alarm card gained 'Preview' pill"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/alarm-edit.tsx, /app/frontend/app/(main)/index.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Removed the 'Test alarm' button from the bottom of /alarm-edit (its job is now done by the new Preview pill on each alarm card). Alarm card on /(main) gained a small orange-bordered 'Preview' pill at the bottom-right (Ionicons play + label), which absolute-positions over the card edge for a sticker-like accent. Tapping it stops the card's row-press from also firing and routes to /alarm-ring?id=<id>."
+
+  - task: "Backend vision route plumbing in server.py + EMERGENT_LLM_KEY"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py, /app/backend/.env"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      -working: true
+        -agent: "main"
+        -comment: "server.py now imports routes.vision.router and registers it. EMERGENT_LLM_KEY added to /app/backend/.env. /app/backend/routes/__init__.py created. /app/image_testing.md saved per integration playbook."
+
+agent_communication:
+  -agent: "main"
+  -message: "M9 bundled multiple deliverables: (1) NEW /xp screen — purple XP badge + animated tada fanfare on mount; (2) Streak page plays trumpet fanfare on mount + chains to /xp; (3) Photo challenge now does real vision verification via Gemini 2.5 Flash on the backend (verified end-to-end with curl: avatar PNG matched 'cartoon avatar'=true/0.95 / rejected 'glass of water'=false/1.0); (4) Alarm-edit Sound picker no longer auto-dismisses on tap — plays preview audio with ref-based no-overlap lifecycle, user closes via Done/X; (5) Removed 'Test alarm' from alarm-edit; (6) Added 'Preview' pill on each alarm card at bottom-right corner. Backend vision endpoint tested and working. SFX hook uses ref + pause+remove on unmount = no memory leaks. Please QA: /xp shows '40 XP' for photo+day1; streak fanfare audible on mount; photo challenge has shutter button + try-again on bad match; sound picker preview cycles correctly without overlap; preview pill on card routes to alarm-ring."

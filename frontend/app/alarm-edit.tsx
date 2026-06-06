@@ -4,7 +4,7 @@
 // Sound, Announcement, Nickname, followed by a Volume slider + Crescendo
 // toggle). We keep the Charrpy Duolingo-3D treatment on every card.
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -20,6 +20,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
+import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { KeyboardAvoidingViewShim as KeyboardAvoidingView } from "@/src/components/KeyboardProviderShim";
 
 import TimePickerInline from "@/src/components/TimePickerInline";
@@ -57,6 +58,55 @@ export default function AlarmEdit() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [alarm, setAlarm] = useState<Alarm | null>(null);
   const [sheet, setSheet] = useState<null | "action" | "repeat" | "sound" | "nickname">(null);
+
+  // Audio preview lifecycle for the Sound picker. Uses a ref so rapid taps
+  // don't fight stale state and we can pause() the previous player before
+  // starting a new one (no overlapping clips).
+  const previewRef = useRef<AudioPlayer | null>(null);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
+
+  const stopSoundPreview = useCallback(() => {
+    const p = previewRef.current;
+    previewRef.current = null;
+    setPreviewingId(null);
+    if (!p) return;
+    try {
+      p.pause();
+    } catch {
+      /* noop */
+    }
+    try {
+      p.remove();
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  const previewSound = useCallback(
+    (ringtoneId: string) => {
+      const ring = findRingtone(ringtoneId);
+      if (!ring) return;
+      stopSoundPreview();
+      try {
+        const p = createAudioPlayer(ring.source);
+        previewRef.current = p;
+        setPreviewingId(ringtoneId);
+        const r = p.play();
+        if (r && typeof (r as Promise<unknown>).catch === "function") {
+          (r as Promise<unknown>).catch(() => {});
+        }
+      } catch (e) {
+        console.warn("[alarm-edit] preview failed", e);
+      }
+    },
+    [stopSoundPreview],
+  );
+
+  // Always tear down audio on unmount + when sheet closes.
+  useEffect(() => () => stopSoundPreview(), [stopSoundPreview]);
+  useEffect(() => {
+    if (sheet !== "sound") stopSoundPreview();
+  }, [sheet, stopSoundPreview]);
 
   useEffect(() => {
     (async () => {
@@ -217,13 +267,6 @@ export default function AlarmEdit() {
           <>
             <View style={{ height: space.lg }} />
             <Button3D
-              label="Test alarm"
-              variant="secondary"
-              onPress={() => router.push(`/alarm-ring?id=${id}`)}
-              testID="alarm-test-button"
-            />
-            <View style={{ height: space.sm }} />
-            <Button3D
               label="Delete alarm"
               variant="secondary"
               onPress={handleDelete}
@@ -306,7 +349,10 @@ export default function AlarmEdit() {
       <ActionSheet
         visible={sheet === "sound"}
         title="Pick a ringtone"
-        onClose={() => setSheet(null)}
+        onClose={() => {
+          stopSoundPreview();
+          setSheet(null);
+        }}
       >
         <ScrollView
           style={styles.soundList}
@@ -319,13 +365,22 @@ export default function AlarmEdit() {
               label={r.label}
               hint={r.vibe}
               selected={alarm.ringtoneId === r.id}
+              icon={previewingId === r.id ? "volume-high" : "play"}
               onPress={() => {
                 update({ ringtoneId: r.id });
-                setSheet(null);
+                previewSound(r.id);
               }}
             />
           ))}
         </ScrollView>
+        <View style={{ height: 8 }} />
+        <Button3D
+          label="Done"
+          onPress={() => {
+            stopSoundPreview();
+            setSheet(null);
+          }}
+        />
       </ActionSheet>
 
       <ActionSheet
@@ -423,8 +478,9 @@ const PickerOption: React.FC<{
   label: string;
   hint?: string;
   selected: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
-}> = ({ label, hint, selected, onPress }) => (
+}> = ({ label, hint, selected, icon, onPress }) => (
   <Pressable
     onPress={onPress}
     style={[
@@ -440,7 +496,19 @@ const PickerOption: React.FC<{
       {hint ? <Text style={styles.rowHint}>{hint}</Text> : null}
     </View>
     {selected ? (
-      <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+      <Ionicons
+        name="checkmark-circle"
+        size={22}
+        color={colors.primary}
+        style={{ marginRight: icon ? 8 : 0 }}
+      />
+    ) : null}
+    {icon ? (
+      <Ionicons
+        name={icon}
+        size={22}
+        color={selected ? colors.primary : colors.textMuted}
+      />
     ) : null}
   </Pressable>
 );

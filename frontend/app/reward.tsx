@@ -19,27 +19,27 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import Button3D from "@/src/components/Button3D";
+import { useOneShotSfx } from "@/src/hooks/use-one-shot-sfx";
 import { colors, fonts, space, type } from "@/src/theme";
 import {
   WEEK_DAYS_MON_FIRST,
-  XP_PER_WIN,
-  awardXp,
   buildCurrentWeek,
-  readXp,
   recordChallengeWin,
   type WeekDayEntry,
 } from "@/src/lib/streak";
 
 const STREAK_GIF = require("../assets/images/gamification/streak.gif");
+const FANFARE = require("../assets/audio/sfx/streak-fanfare.mp3");
 
 const CHIP_DEPTH = 5;
 
 export default function Reward() {
   const router = useRouter();
   const { from } = useLocalSearchParams<{ from?: string }>();
+  useOneShotSfx(FANFARE, 0.8);
+
   const [count, setCount] = useState<number | null>(null);
   const [week, setWeek] = useState<WeekDayEntry[]>([]);
-  const [xp, setXp] = useState<number>(0);
 
   useEffect(() => {
     Haptics.notificationAsync(
@@ -47,11 +47,9 @@ export default function Reward() {
     ).catch(() => {});
 
     (async () => {
-      const { state, advanced } = await recordChallengeWin();
+      const { state } = await recordChallengeWin();
       setCount(state.count);
       setWeek(buildCurrentWeek(state));
-      const nextXp = advanced ? await awardXp(XP_PER_WIN) : await readXp();
-      setXp(nextXp);
     })();
   }, []);
 
@@ -89,13 +87,14 @@ export default function Reward() {
         </View>
 
         <Text style={styles.challengeLine}>{challengeLabel}</Text>
-        <Text style={styles.xpLine}>+{XP_PER_WIN} XP · {xp} total</Text>
       </View>
 
       <View style={styles.footer}>
         <Button3D
           label="Continue"
-          onPress={() => router.replace("/(main)")}
+          onPress={() =>
+            router.replace(`/xp?from=${encodeURIComponent(from || "math")}`)
+          }
           testID="reward-continue-button"
         />
       </View>

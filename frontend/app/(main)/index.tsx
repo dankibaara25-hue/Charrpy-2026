@@ -103,6 +103,7 @@ export default function AlarmsScreen() {
               onPress={() => router.push(`/alarm-edit?id=${a.id}`)}
               onToggle={() => toggleEnabled(a)}
               onDelete={() => handleDelete(a.id)}
+              onPreview={() => router.push(`/alarm-ring?id=${a.id}`)}
             />
           ))
         )}
@@ -116,6 +117,7 @@ interface AlarmCardProps {
   onPress: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onPreview: () => void;
 }
 
 const AlarmCard: React.FC<AlarmCardProps> = ({
@@ -123,6 +125,7 @@ const AlarmCard: React.FC<AlarmCardProps> = ({
   onPress,
   onToggle,
   onDelete,
+  onPreview,
 }) => {
   const [pressed, setPressed] = useState(false);
   const ring = findRingtone(alarm.ringtoneId);
@@ -165,6 +168,21 @@ const AlarmCard: React.FC<AlarmCardProps> = ({
           testID={`alarm-toggle-${alarm.id}`}
         />
       </View>
+      <Pressable
+        onPress={(e) => {
+          // Stop the row's onPress from also firing (which would route to
+          // alarm-edit). Preview should only trigger the preview ring.
+          e.stopPropagation?.();
+          Haptics.selectionAsync().catch(() => {});
+          onPreview();
+        }}
+        hitSlop={6}
+        style={styles.previewBtn}
+        testID={`alarm-preview-${alarm.id}`}
+      >
+        <Ionicons name="play" size={14} color={colors.primary} />
+        <Text style={styles.previewLabel}>Preview</Text>
+      </Pressable>
     </Pressable>
   );
 };
@@ -244,5 +262,28 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: fonts.semibold,
     marginTop: 4,
+  },
+  previewBtn: {
+    position: "absolute",
+    right: 12,
+    bottom: -10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderBottomWidth: 4,
+    borderBottomColor: colors.primaryDark,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  previewLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.primary,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
 });

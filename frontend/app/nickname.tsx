@@ -3,10 +3,7 @@
 import React, { useState } from "react";
 import {
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { signInAnonymously } from "firebase/auth";
 
 import Button3D from "@/src/components/Button3D";
+import { KeyboardAwareScrollViewShim as KeyboardAwareScrollView } from "@/src/components/KeyboardProviderShim";
 import { auth } from "@/src/lib/firebase";
 import { findAvatar } from "@/src/onboarding/avatars";
 import { colors, fonts, radius, space, type } from "@/src/theme";
@@ -80,50 +78,48 @@ export default function Nickname() {
         <View style={{ flex: 1 }} />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bottomOffset={120}
       >
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {avatar ? (
-            <View style={styles.avatarWrap}>
-              <Image
-                source={avatar.source}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-            </View>
-          ) : null}
-
-          <Text style={styles.title}>Pick a nickname</Text>
-          <Text style={styles.subtitle}>Friends will see this.</Text>
-
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={nickname}
-              onChangeText={(v) => {
-                setNickname(v);
-                setError(null);
-              }}
-              placeholder="early.bird"
-              placeholderTextColor={colors.shadowSoft}
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={MAX + 4}
-              style={styles.input}
-              testID="nickname-input"
+        {avatar ? (
+          <View style={styles.avatarWrap}>
+            <Image
+              source={avatar.source}
+              style={styles.avatar}
+              resizeMode="cover"
             />
           </View>
-          <Text style={styles.hint}>
-            {MIN}-{MAX} letters, numbers, . _ - allowed.
-          </Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        ) : null}
+
+        <Text style={styles.title}>Pick a nickname</Text>
+        <Text style={styles.subtitle}>Friends will see this.</Text>
+
+        <View style={styles.inputWrap}>
+          <TextInput
+            value={nickname}
+            onChangeText={(v) => {
+              setNickname(v);
+              setError(null);
+            }}
+            placeholder="early.bird"
+            placeholderTextColor={colors.shadowSoft}
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={MAX + 4}
+            style={styles.input}
+            testID="nickname-input"
+            returnKeyType="done"
+            onSubmitEditing={handleCreate}
+          />
+        </View>
+        <Text style={styles.hint}>
+          {MIN}-{MAX} letters, numbers, . _ - allowed.
+        </Text>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+      </KeyboardAwareScrollView>
 
       <View style={styles.footer}>
         <Button3D

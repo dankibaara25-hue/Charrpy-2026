@@ -20,6 +20,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
+import { KeyboardAvoidingViewShim as KeyboardAvoidingView } from "@/src/components/KeyboardProviderShim";
 
 import TimePickerInline from "@/src/components/TimePickerInline";
 import Button3D from "@/src/components/Button3D";
@@ -393,7 +394,12 @@ const ActionSheet: React.FC<{
     animationType="fade"
     onRequestClose={onClose}
   >
-    <Pressable style={styles.backdrop} onPress={onClose}>
+    <KeyboardAvoidingView
+      behavior="padding"
+      style={styles.backdrop}
+      keyboardVerticalOffset={0}
+    >
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
         <View style={styles.sheetHeader}>
           <Text style={styles.sheetTitle}>{title}</Text>
@@ -403,7 +409,7 @@ const ActionSheet: React.FC<{
         </View>
         {children}
       </Pressable>
-    </Pressable>
+    </KeyboardAvoidingView>
   </Modal>
 );
 

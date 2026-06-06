@@ -1,8 +1,17 @@
-// Ringtone selection — list of 5 locally-bundled clips with radio rows. Tapping
-// a row both selects it and previews the audio. Picking another row stops the
-// previous preview; leaving the screen stops playback.
+// Ringtone selection — list of locally-bundled clips with radio rows.
+// Tapping a row both selects it and previews the audio. Picking another row
+// stops the previous preview; leaving the screen stops playback.
+//
+// Audio lifecycle uses a ref (not state) so:
+//   1. Successive rapid taps don't fight stale closures — `playerRef.current`
+//      is always the live player on every render.
+//   2. We can pause() BEFORE remove() to guarantee the previous clip stops
+//      bleeding into the next selection (this fixes the bug where the first
+//      audio kept playing under the second).
+//   3. Reselecting the same row replays the clip from the top (instead of
+//      silently no-op'ing because we left the previous player attached).
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -27,50 +36,63 @@ export default function RingtoneSelect() {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
-  const [player, setPlayer] = useState<AudioPlayer | null>(null);
 
-  // Tear down audio on unmount so previewing doesn't leak when navigating.
-  useEffect(() => {
-    return () => {
-      try {
-        player?.remove();
-      } catch {
-        /* noop */
-      }
-    };
-  }, [player]);
+  // Live audio player ref. Keeping this off React state means every call to
+  // `previewAndSelect` reads + writes the same value without closure issues.
+  const playerRef = useRef<AudioPlayer | null>(null);
+
+  const stopCurrent = useCallback(() => {
+    const p = playerRef.current;
+    if (!p) return;
+    try {
+      p.pause();
+    } catch {
+      /* noop */
+    }
+    try {
+      p.remove();
+    } catch {
+      /* noop */
+    }
+    playerRef.current = null;
+  }, []);
+
+  // Hard stop on unmount so audio doesn't leak when leaving the screen.
+  useEffect(() => stopCurrent, [stopCurrent]);
 
   const previewAndSelect = (id: string) => {
     const ring = RINGTONES.find((r) => r.id === id);
     if (!ring) return;
-    setSelected(id);
+
     Haptics.selectionAsync().catch(() => {});
 
-    // Stop & dispose the previous player before starting a new one.
-    try {
-      player?.remove();
-    } catch {
-      /* noop */
-    }
+    // Tear down the previous clip BEFORE creating the next one. Both calls
+    // (pause + remove) tolerate failure — expo-audio occasionally throws if
+    // the player was already disposed (e.g. component unmount race).
+    stopCurrent();
+
+    setSelected(id);
+    setPlayingId(id);
 
     try {
       const p = createAudioPlayer(ring.source);
-      p.play();
-      setPlayer(p);
-      setPlayingId(id);
+      playerRef.current = p;
+      const result = p.play();
+      // expo-audio on web returns a Promise that rejects when the page
+      // hasn't yet received a user gesture — swallow it so no pageerror.
+      if (result && typeof (result as Promise<unknown>).catch === "function") {
+        (result as Promise<unknown>).catch(() => {});
+      }
     } catch (e) {
-      console.warn("ringtone preview failed", e);
+      console.warn("[ringtone-select] preview failed", e);
+      playerRef.current = null;
       setPlayingId(null);
     }
   };
 
   const handleContinue = async () => {
     if (!selected) return;
-    try {
-      player?.remove();
-    } catch {
-      /* noop */
-    }
+    stopCurrent();
     await storage.setItem("charrpy.ringtone.id", selected);
     router.push("/notifications-permission");
   };
@@ -83,7 +105,10 @@ export default function RingtoneSelect() {
     >
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            stopCurrent();
+            router.back();
+          }}
           hitSlop={12}
           style={styles.backBtn}
           testID="ringtone-select-back-button"
@@ -177,9 +202,7 @@ const RingtoneRow: React.FC<RingtoneRowProps> = ({
             },
           ]}
         >
-          {selected ? (
-            <View style={styles.radioInner} />
-          ) : null}
+          {selected ? <View style={styles.radioInner} /> : null}
         </View>
         <View style={styles.rowText}>
           <Text style={styles.rowLabel}>{label}</Text>

@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
+import { KeyboardProviderShim } from "@/src/components/KeyboardProviderShim";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { useAppFonts } from "@/src/hooks/use-app-fonts";
 import { AuthProvider } from "@/src/context/AuthContext";
@@ -32,18 +33,20 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-              animation: "slide_from_right",
-            }}
-          />
-        </AuthProvider>
-      </SafeAreaProvider>
+      <KeyboardProviderShim>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                animation: "slide_from_right",
+              }}
+            />
+          </AuthProvider>
+        </SafeAreaProvider>
+      </KeyboardProviderShim>
     </GestureHandlerRootView>
   );
 }

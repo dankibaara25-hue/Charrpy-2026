@@ -280,3 +280,34 @@ frontend:
 agent_communication:
   -agent: "main"
   -message: "M6 bundled three changes: (1) VirtualizedList nested-in-ScrollView crash on alarm-edit fixed by swapping FlatList for ScrollView inside TimePickerInline; verified alarm-edit screen loads cleanly. (2) Empty state on Alarms and Leaderboard tabs now centered vertically — both render at ~mid-screen with the sleeping bird mascot. (3) /reward fully redesigned: animated flame GIF at top, giant orange day count, 'day streak' caption, Mo→Su 3D circular check chips (today gets a primary ring even if not yet completed; completed days are filled with orange + checkmark + bottom-border depth). Streak + XP persisted locally via /src/lib/streak.ts (idempotent same-day; resets if a day is skipped). Please verify: (a) opening alarm-edit no longer red-boxes, (b) Alarms empty / Leaderboard empty visuals are centered, (c) /reward shows flame gif + '1' day streak after one challenge with today's weekday chip filled."
+
+# ===== Iteration M7 — Audio bug + Keyboard overshadow fixes =====
+
+frontend:
+  - task: "Fix ringtone preview audio bug (subsequent taps don't play / overlap)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/ringtone-select.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Rewrote audio lifecycle to use a useRef (playerRef) instead of useState for the live AudioPlayer instance. Three behavioral changes: (1) Every tap reads + writes the SAME ref so there's no stale-closure window where the old player is still bound but the next tap fires; (2) We call pause() BEFORE remove() on the previous player so the previous clip stops bleeding into the next one; (3) Reselecting the same row tears down + recreates the player, so playback restarts from the top instead of silently no-op'ing. Wrapped p.play()'s return in .catch() to swallow the web-only NotAllowedError when the page hasn't received a gesture yet. Unmount cleanup hits stopCurrent."
+
+  - task: "Keyboard overshadow on Nickname (and other TextInputs)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/nickname.tsx, /app/frontend/app/alarm-edit.tsx, /app/frontend/app/_layout.tsx, /app/frontend/src/components/KeyboardProviderShim.{tsx,native.tsx,web.tsx}"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Installed react-native-keyboard-controller@~1.18.0 (matched SDK 54). Added platform-specific shim at src/components/KeyboardProviderShim: native re-exports KeyboardProvider + KeyboardAwareScrollView + KeyboardAvoidingView from the lib; .web.tsx provides no-op fallbacks (browser handles keyboard avoidance natively, and the lib's native bindings throw 'KeyboardProvider is not defined' if loaded on web). Root _layout.tsx wraps the app in KeyboardProviderShim. nickname.tsx switched from RN KeyboardAvoidingView + ScrollView combo → KeyboardAwareScrollViewShim with bottomOffset=120 so the input scrolls clear of the keyboard automatically. alarm-edit.tsx ActionSheet (which contains the alarm-nickname TextInput) wraps its sheet in KeyboardAvoidingViewShim so the modal lifts above the keyboard. Verified web preview renders all three screens cleanly post-restart."
+
+agent_communication:
+  -agent: "main"
+  -message: "M7 done — two device-only bugs fixed: (1) ringtone-select preview audio now uses a ref instead of state so the same row replays + different rows actually stop the previous clip + no more overlap; (2) keyboard overshadow on the Nickname screen and the alarm-edit Nickname modal fixed via react-native-keyboard-controller (KeyboardAwareScrollView for forms, KeyboardAvoidingView for modal). Web-safe shims prevent runtime errors when the lib's native bindings would otherwise throw. NOTE TO USER: I couldn't access the new ringtones at https://github.com/dankibaara25-hue/Charrpy-2026 (repo returns 404 — likely private). I asked the user to either make it public, upload the mp3s directly, or share raw URLs. As soon as the user shares them I'll swap them in and split first-5 onto onboarding / rest into the alarm-edit ringtone picker."

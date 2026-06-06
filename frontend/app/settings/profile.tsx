@@ -142,10 +142,9 @@ export default function EditProfile() {
           )}
           <SafeAreaView
             edges={["top"]}
-            pointerEvents="box-none"
-            style={StyleSheet.absoluteFill}
+            style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}
           >
-            <View style={styles.bannerTopRow} pointerEvents="box-none">
+            <View style={[styles.bannerTopRow, { pointerEvents: "box-none" }]}>
               <Pressable
                 onPress={() => router.back()}
                 hitSlop={12}

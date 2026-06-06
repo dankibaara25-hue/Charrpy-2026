@@ -29,6 +29,7 @@ import Button3D from "@/src/components/Button3D";
 import { ONBOARDING_RINGTONES as RINGTONES } from "@/src/onboarding/ringtones";
 import { colors, fonts, radius, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
+import { writePendingAlarm } from "@/src/lib/alarms";
 
 const DEPTH = 4;
 
@@ -93,8 +94,20 @@ export default function RingtoneSelect() {
   const handleContinue = async () => {
     if (!selected) return;
     stopCurrent();
-    await storage.setItem("charrpy.ringtone.id", selected);
-    router.push("/notifications-permission");
+    // Merge the ringtone choice into the pending draft so the alarm carries
+    // through the rest of onboarding (camera permission + paywall) and is
+    // committed once the user hits the Alarms tab.
+    await Promise.all([
+      storage.setItem("charrpy.ringtone.id", selected),
+      writePendingAlarm({ ringtoneId: selected }),
+    ]);
+    // Chain notifications → camera → paywall via the `?next=` param, so
+    // both permission screens drop the user into the paywall after they
+    // either allow or skip.
+    const chain =
+      "/notifications-permission?next=" +
+      encodeURIComponent("/camera-permission?next=" + encodeURIComponent("/paywall"));
+    router.push(chain);
   };
 
   return (

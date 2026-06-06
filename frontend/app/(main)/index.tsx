@@ -20,6 +20,7 @@ import {
   Alarm,
   deleteAlarm,
   formatTime,
+  hydratePendingAlarm,
   listAlarms,
   repeatLabel,
   saveAlarm,
@@ -38,9 +39,16 @@ export default function AlarmsScreen() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      listAlarms().then((a) => {
+      (async () => {
+        // First, flush any alarm draft saved during onboarding into the
+        // real list (no-op when there's no draft). This is what makes the
+        // onboarding alarm actually persist into the Alarms tab.
+        await hydratePendingAlarm().catch((e) =>
+          console.warn("[alarms] hydratePendingAlarm failed", e),
+        );
+        const a = await listAlarms();
         if (alive) setAlarms(a);
-      });
+      })();
       return () => {
         alive = false;
       };

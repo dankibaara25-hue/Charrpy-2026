@@ -13,6 +13,7 @@ import TimePickerInline, {
 } from "@/src/components/TimePickerInline";
 import { colors, fonts, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
+import { writePendingAlarm } from "@/src/lib/alarms";
 
 const DEFAULT_TIME: TimeValue = { hour: 7, minute: 0, meridiem: "AM" };
 
@@ -21,10 +22,20 @@ export default function SetAlarm() {
   const [time, setTime] = useState<TimeValue>(DEFAULT_TIME);
 
   const handleContinue = async () => {
-    await storage.setItem(
-      "charrpy.alarm.time",
-      `${time.hour}:${String(time.minute).padStart(2, "0")} ${time.meridiem}`,
-    );
+    // Stash the picked time as a pending draft so the alarm survives the
+    // rest of onboarding (ringtone → notifications → camera → paywall) and
+    // gets hydrated into the real list on first focus of the Alarms tab.
+    await Promise.all([
+      storage.setItem(
+        "charrpy.alarm.time",
+        `${time.hour}:${String(time.minute).padStart(2, "0")} ${time.meridiem}`,
+      ),
+      writePendingAlarm({
+        hour: time.hour,
+        minute: time.minute,
+        meridiem: time.meridiem,
+      }),
+    ]);
     router.push("/ringtone-select");
   };
 

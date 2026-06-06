@@ -38,6 +38,7 @@ export interface Alarm {
 }
 
 const KEY = "charrpy.alarms";
+const PENDING_KEY = "charrpy.alarm.pending";
 
 const newId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -155,3 +156,75 @@ export const repeatLabel = (a: Pick<Alarm, "repeat" | "customDays">) => {
         .join(" ");
   }
 };
+
+// ----- Pending alarm draft (onboarding flow) ------------------------------
+// While the user walks through set-alarm → ringtone-select → notifications →
+// camera → paywall, we don't yet have somewhere to put the alarm (the
+// alarms tab isn't reachable until onboarding is done). So we stash a
+// partial draft here and flush it into the real list on first focus of the
+// Alarms tab. This means an alarm picked during onboarding actually shows
+// up in the user's list (was previously falling through).
+
+export type PendingAlarmDraft = Partial<
+  Pick<
+    Alarm,
+    "hour" | "minute" | "meridiem" | "ringtoneId" | "challenge" | "nickname"
+  >
+>;
+
+export async function readPendingAlarm(): Promise<PendingAlarmDraft | null> {
+  const raw = await storage.getItem(PENDING_KEY, "");
+  if (!raw || typeof raw !== "string") return null;
+  try {
+    const parsed = JSON.parse(raw) as PendingAlarmDraft;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function writePendingAlarm(
+  patch: PendingAlarmDraft,
+): Promise<PendingAlarmDraft> {
+  const current = (await readPendingAlarm()) ?? {};
+  const next = { ...current, ...patch };
+  await storage.setItem(PENDING_KEY, JSON.stringify(next));
+  return next;
+}
+
+export async function clearPendingAlarm(): Promise<void> {
+  await storage.removeItem(PENDING_KEY);
+}
+
+/**
+ * Flush any pending onboarding draft into the real alarm list. Idempotent:
+ * if no draft exists, returns null. If a draft exists but is missing
+ * required fields we fill in sensible defaults so the alarm still saves.
+ */
+export async function hydratePendingAlarm(): Promise<Alarm | null> {
+  const draft = await readPendingAlarm();
+  if (!draft) return null;
+  // Need at minimum a time. Bail (and clear) if even that's missing so we
+  // don't insert a junk alarm.
+  if (
+    typeof draft.hour !== "number" ||
+    typeof draft.minute !== "number" ||
+    (draft.meridiem !== "AM" && draft.meridiem !== "PM")
+  ) {
+    await clearPendingAlarm();
+    return null;
+  }
+  const base = defaultAlarm(draft.ringtoneId);
+  const merged: Alarm = {
+    ...base,
+    hour: draft.hour,
+    minute: draft.minute,
+    meridiem: draft.meridiem,
+    ringtoneId: draft.ringtoneId ?? base.ringtoneId,
+    challenge: draft.challenge ?? base.challenge,
+    nickname: draft.nickname ?? base.nickname,
+  };
+  await saveAlarm(merged);
+  await clearPendingAlarm();
+  return merged;
+}

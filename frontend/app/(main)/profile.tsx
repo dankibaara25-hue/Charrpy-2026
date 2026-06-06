@@ -164,10 +164,65 @@ export default function ProfileTab() {
             testID="profile-stat-xp"
           />
         </View>
+
+        <LockedRow
+          title="Badges"
+          testID="profile-section-badges"
+          onChevronPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+          }}
+        />
+        <LockedRow
+          title="Awards"
+          testID="profile-section-awards"
+          onChevronPress={() => {
+            Haptics.selectionAsync().catch(() => {});
+          }}
+        />
       </ScrollView>
     </View>
   );
 }
+
+interface LockedRowProps {
+  title: string;
+  testID?: string;
+  onChevronPress?: () => void;
+}
+
+const LOCKED_PLACEHOLDERS = [0, 1, 2, 3];
+
+const LockedRow: React.FC<LockedRowProps> = ({
+  title,
+  testID,
+  onChevronPress,
+}) => (
+  <View style={styles.lockedSection} testID={testID}>
+    <View style={styles.lockedHeader}>
+      <Text style={styles.section}>{title}</Text>
+      <Pressable
+        onPress={onChevronPress}
+        hitSlop={8}
+        style={styles.chevronBtn}
+        testID={testID ? `${testID}-chevron` : undefined}
+      >
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+      </Pressable>
+    </View>
+    <Text style={styles.comingSoon}>Coming soon…</Text>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.lockedStrip}
+    >
+      {LOCKED_PLACEHOLDERS.map((i) => (
+        <View key={i} style={styles.lockedBadge}>
+          <Ionicons name="lock-closed" size={26} color={colors.shadowSoft} />
+        </View>
+      ))}
+    </ScrollView>
+  </View>
+);
 
 interface StatCardProps {
   emoji: string;
@@ -283,5 +338,46 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     fontSize: 13,
     color: colors.textMuted,
+  },
+  // ---- Badges & Awards (locked placeholder rows) -----------------------
+  lockedSection: {
+    marginTop: space.md,
+  },
+  lockedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  chevronBtn: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  comingSoon: {
+    ...type.small,
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
+    marginTop: 2,
+    marginBottom: space.sm,
+  },
+  lockedStrip: {
+    gap: 14,
+    paddingVertical: 4,
+    paddingRight: space.md,
+  },
+  // Darker hue of gray, sits one notch above the avatar bg so the locked
+  // padlock circles read clearly as "inactive" inside the cream surface.
+  lockedBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#D6D6DA",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#B8B8BE",
+    borderBottomWidth: 5,
+    borderBottomColor: "#B8B8BE",
   },
 });

@@ -1,12 +1,16 @@
 // Profile tab — banner avatar across the full width, nickname top-left,
 // gear icon top-right (→ /settings), Add Friends share button, and an
-// Overview section with streak (🔥) + XP (⚡) stats. Layout adapted from
-// the user-supplied reference but rendered in Charrpy's warm-cream palette
-// and our Duolingo-style 3D treatment.
+// Overview section showing the streak (🔥) + XP (⚡) stats. Layout follows
+// the user-supplied reference: the avatar sits *inside* the tan banner at a
+// proportionally smaller size (not cropped), and the device's status bar is
+// tinted to match the banner background so the top of the screen reads as
+// one continuous shape. Overview stats are minimal — icon + bold value +
+// small unit label, side-by-side.
 
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Image,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -16,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -24,10 +29,11 @@ import { findAvatar } from "@/src/onboarding/avatars";
 import { getUserProfile } from "@/src/lib/userProfile";
 import { readStreak } from "@/src/lib/streak";
 import { readXp } from "@/src/lib/xp";
-import { colors, fonts, radius, space, type } from "@/src/theme";
+import { colors, fonts, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
 
 const APP_URL = "https://www.charrpy.com";
+const BANNER_BG = "#FFE3BD"; // soft tan — also used to tint the status bar
 
 export default function ProfileTab() {
   const router = useRouter();
@@ -37,7 +43,6 @@ export default function ProfileTab() {
   const [xp, setXp] = useState(0);
 
   const hydrate = useCallback(async () => {
-    // Local cache first for instant paint, then Firestore truth.
     const [n, a, s, x] = await Promise.all([
       storage.getItem("charrpy.nickname", ""),
       storage.getItem("charrpy.avatar.id", ""),
@@ -63,7 +68,6 @@ export default function ProfileTab() {
     void hydrate();
   }, [hydrate]);
 
-  // Re-hydrate every time the tab regains focus (e.g. after editing profile).
   useFocusEffect(
     useCallback(() => {
       void hydrate();
@@ -86,25 +90,18 @@ export default function ProfileTab() {
 
   return (
     <View style={styles.root} testID="profile-screen">
-      {/* Banner avatar spans full width. We render it OUTSIDE the SafeAreaView
-          so the warm-cream bg extends to the very top, edge-to-edge. */}
+      {/* Tint the status bar to match the banner bg so the top of the screen
+          reads as one continuous tan area. On Android the system bar is
+          actually colored; on iOS the SafeArea inset over the same tan
+          backdrop achieves the same effect. */}
+      <StatusBar
+        style="dark"
+        backgroundColor={Platform.OS === "android" ? BANNER_BG : undefined}
+      />
+
       <View style={styles.banner}>
-        {avatar ? (
-          <Image
-            source={avatar.source}
-            style={styles.bannerImg}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.bannerPlaceholder}>
-            <Ionicons name="person" size={120} color={colors.shadow} />
-          </View>
-        )}
-        <SafeAreaView
-          edges={["top"]}
-          style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}
-        >
-          <View style={[styles.bannerTopRow, { pointerEvents: "box-none" }]}>
+        <SafeAreaView edges={["top"]} style={styles.bannerSafeArea}>
+          <View style={styles.bannerTopRow}>
             <Text
               style={styles.bannerName}
               numberOfLines={1}
@@ -118,8 +115,22 @@ export default function ProfileTab() {
               style={styles.gearBtn}
               testID="profile-settings-button"
             >
-              <Ionicons name="settings" size={22} color={colors.textMain} />
+              <Ionicons name="settings" size={20} color={colors.textMain} />
             </Pressable>
+          </View>
+
+          <View style={styles.avatarSlot}>
+            {avatar ? (
+              <Image
+                source={avatar.source}
+                style={styles.avatarImg}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={88} color={colors.shadow} />
+              </View>
+            )}
           </View>
         </SafeAreaView>
       </View>
@@ -137,18 +148,18 @@ export default function ProfileTab() {
 
         <Text style={styles.section}>Overview</Text>
         <View style={styles.statsRow}>
-        <StatCard
-          emoji="🔥"
-          label="Day streak"
-          value={`${streakCount}`}
-          testID="profile-stat-streak"
-        />
-        <StatCard
-          emoji="⚡"
-          label="Total XP"
-          value={`${xp}`}
-          testID="profile-stat-xp"
-        />
+          <StatCard
+            emoji="🔥"
+            value={`${streakCount}`}
+            unit={streakCount === 1 ? "day" : "days"}
+            testID="profile-stat-streak"
+          />
+          <StatCard
+            emoji="⚡"
+            value={`${xp}`}
+            unit="XP"
+            testID="profile-stat-xp"
+          />
         </View>
       </ScrollView>
     </View>
@@ -157,45 +168,43 @@ export default function ProfileTab() {
 
 interface StatCardProps {
   emoji: string;
-  label: string;
   value: string;
+  unit: string;
   testID?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ emoji, label, value, testID }) => (
+const StatCard: React.FC<StatCardProps> = ({ emoji, value, unit, testID }) => (
   <View style={styles.statCard} testID={testID}>
-    <Text style={styles.statValue}>
-      <Text style={styles.statEmoji}>{emoji}</Text> {value}
+    <Text style={styles.statEmoji}>{emoji}</Text>
+    <Text style={styles.statValue} numberOfLines={1}>
+      {value} <Text style={styles.statUnit}>{unit}</Text>
     </Text>
-    <Text style={styles.statLabel}>{label}</Text>
   </View>
 );
 
-const BANNER_HEIGHT = 220;
+// Avatar slot lives INSIDE the banner so we control its size and prevent the
+// cropping issue caused by resizeMode:"cover". Banner height + avatar height
+// are tuned so the head/shoulders of the avatar are fully visible.
+const BANNER_HEIGHT = 240;
+const AVATAR_SIZE = 150;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   banner: {
     width: "100%",
     height: BANNER_HEIGHT,
-    backgroundColor: "#FFE3BD", // soft tan, on-brand stand-in for the green pattern in the reference
+    backgroundColor: BANNER_BG,
     overflow: "hidden",
   },
-  bannerImg: {
-    width: "100%",
-    height: "100%",
-  },
-  bannerPlaceholder: {
+  bannerSafeArea: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: space.lg,
   },
   bannerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
+    paddingTop: space.xs,
   },
   bannerName: {
     fontFamily: fonts.bold,
@@ -207,9 +216,9 @@ const styles = StyleSheet.create({
     textTransform: "lowercase",
   },
   gearBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -217,6 +226,21 @@ const styles = StyleSheet.create({
     borderColor: colors.shadow,
     borderBottomWidth: 4,
     borderBottomColor: colors.shadow,
+  },
+  avatarSlot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  avatarImg: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+  },
+  avatarPlaceholder: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
   },
   scroll: { flex: 1 },
   scrollContent: {
@@ -231,36 +255,31 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     textTransform: "uppercase",
     letterSpacing: 1,
-    marginTop: space.md,
+    marginTop: space.sm,
   },
   statsRow: {
     flexDirection: "row",
-    gap: space.md,
+    gap: space.lg,
+    alignItems: "center",
   },
   statCard: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  statTextWrap: {
-    flex: 1,
+    gap: 8,
+    paddingVertical: 6,
   },
   statEmoji: {
-    fontSize: 28,
+    fontSize: 22,
   },
   statValue: {
     fontFamily: fonts.bold,
-    fontSize: 26,
+    fontSize: 18,
     color: colors.textMain,
-    lineHeight: 30,
   },
-  statLabel: {
-    ...type.caption,
+  statUnit: {
+    fontFamily: fonts.semibold,
+    fontSize: 13,
     color: colors.textMuted,
-    fontFamily: fonts.medium,
-    marginTop: 2,
   },
 });

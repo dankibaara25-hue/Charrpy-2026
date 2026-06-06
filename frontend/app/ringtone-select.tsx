@@ -94,20 +94,17 @@ export default function RingtoneSelect() {
   const handleContinue = async () => {
     if (!selected) return;
     stopCurrent();
-    // Merge the ringtone choice into the pending draft so the alarm carries
-    // through the rest of onboarding (camera permission + paywall) and is
-    // committed once the user hits the Alarms tab.
     await Promise.all([
       storage.setItem("charrpy.ringtone.id", selected),
       writePendingAlarm({ ringtoneId: selected }),
     ]);
-    // Chain notifications → camera → paywall via the `?next=` param, so
-    // both permission screens drop the user into the paywall after they
-    // either allow or skip.
-    const chain =
-      "/notifications-permission?next=" +
-      encodeURIComponent("/camera-permission?next=" + encodeURIComponent("/paywall"));
-    router.push(chain);
+    // Ringtone → Notifications permission → Paywall.
+    // Notifications is the only remaining mandatory permission; camera
+    // was already asked back at /camera-permission (right after the user
+    // picked the wake-up challenge).
+    router.push(
+      "/notifications-permission?next=" + encodeURIComponent("/paywall"),
+    );
   };
 
   return (

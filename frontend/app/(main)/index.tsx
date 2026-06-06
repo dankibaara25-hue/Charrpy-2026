@@ -1,5 +1,19 @@
 // Alarms tab — title top-left + square 3D FAB top-right. Cards list each
 // alarm with a per-row enable Switch. Long-press a card to delete.
+//
+// Two permission-aware behaviours live on this screen:
+//
+//   1. Post-paywall one-shot: the very first time the user lands here
+//      after onboarding (tracked via the `charrpy.perms.postPaywallShown`
+//      flag), if any permission they need is still missing we push them
+//      through the dedicated permission screens once and only once.
+//
+//   2. Per-card "i" affordance: each alarm card surfaces a small circular
+//      "info" badge in the top-right corner when that specific alarm is
+//      missing a permission it actually needs (notifications for every
+//      alarm; camera only for barcode/photo challenges). Tapping the
+//      badge routes the user through exactly the missing permission
+//      screens \u2014 no full-app blocking, no surprise prompts.
 
 import React, { useCallback, useState } from "react";
 import {
@@ -25,34 +39,72 @@ import {
   repeatLabel,
   saveAlarm,
 } from "@/src/lib/alarms";
+import {
+  AlarmPermissionStatus,
+  buildPermissionChain,
+  getAlarmPermissionStatus,
+  missingForAlarm,
+} from "@/src/lib/permissions";
+import { storage } from "@/src/utils/storage";
 import { colors, fonts, radius, space, type } from "@/src/theme";
 import { findRingtone } from "@/src/onboarding/ringtones";
 
 const FAB_DEPTH = 5;
 const CARD_DEPTH = 5;
 
+const POST_PAYWALL_FLAG = "charrpy.perms.postPaywallShown";
+
 export default function AlarmsScreen() {
   const router = useRouter();
   const [alarms, setAlarms] = useState<Alarm[]>([]);
   const [fabPressed, setFabPressed] = useState(false);
+  const [permStatus, setPermStatus] = useState<AlarmPermissionStatus | null>(
+    null,
+  );
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       (async () => {
-        // First, flush any alarm draft saved during onboarding into the
-        // real list (no-op when there's no draft). This is what makes the
-        // onboarding alarm actually persist into the Alarms tab.
+        // 1. Flush any onboarding draft into the real list (no-op when
+        //    there's nothing pending).
         await hydratePendingAlarm().catch((e) =>
           console.warn("[alarms] hydratePendingAlarm failed", e),
         );
-        const a = await listAlarms();
-        if (alive) setAlarms(a);
+
+        // 2. Reload alarms + live permission status in parallel.
+        const [a, ps] = await Promise.all([
+          listAlarms(),
+          getAlarmPermissionStatus(),
+        ]);
+        if (!alive) return;
+        setAlarms(a);
+        setPermStatus(ps);
+
+        // 3. Post-paywall one-shot: only ever runs once. If the user is
+        //    missing anything, walk them through the missing screens once
+        //    and mark the flag so we never auto-push again. The per-card
+        //    "i" icon takes over from here.
+        const seen = await storage.getItem(POST_PAYWALL_FLAG, "");
+        if (!seen && ps.missing.length > 0) {
+          // Mark BEFORE pushing so a hot-reload / fast remount cannot
+          // double-trigger the chain.
+          await storage.setItem(POST_PAYWALL_FLAG, "1");
+          const chain = buildPermissionChain(ps.missing, "/(main)");
+          if (chain && alive) {
+            router.replace(chain as never);
+            return;
+          }
+        } else if (!seen) {
+          // Nothing missing on first paint — still set the flag so we
+          // never bother checking again.
+          await storage.setItem(POST_PAYWALL_FLAG, "1");
+        }
       })();
       return () => {
         alive = false;
       };
-    }, []),
+    }, [router]),
   );
 
   const toggleEnabled = async (a: Alarm) => {
@@ -64,6 +116,18 @@ export default function AlarmsScreen() {
   const handleDelete = async (id: string) => {
     const next = await deleteAlarm(id);
     setAlarms(next);
+  };
+
+  // Per-card: tap the "i" badge → push the chain of just the screens this
+  // alarm actually needs, ending back at /(main).
+  const handleFixPermissions = (alarm: Alarm) => {
+    if (!permStatus) return;
+    const missing = missingForAlarm(permStatus, alarm.challenge);
+    const chain = buildPermissionChain(missing, "/(main)");
+    if (chain) {
+      Haptics.selectionAsync().catch(() => {});
+      router.push(chain as never);
+    }
   };
 
   return (
@@ -104,16 +168,21 @@ export default function AlarmsScreen() {
             <EmptyState hint="No alarms yet." testID="alarms-empty" />
           </View>
         ) : (
-          alarms.map((a) => (
-            <AlarmCard
-              key={a.id}
-              alarm={a}
-              onPress={() => router.push(`/alarm-edit?id=${a.id}`)}
-              onToggle={() => toggleEnabled(a)}
-              onDelete={() => handleDelete(a.id)}
-              onPreview={() => router.push(`/alarm-ring?id=${a.id}`)}
-            />
-          ))
+          alarms.map((a) => {
+            const missing = permStatus ? missingForAlarm(permStatus, a.challenge) : [];
+            return (
+              <AlarmCard
+                key={a.id}
+                alarm={a}
+                missingPermissions={missing.length}
+                onPress={() => router.push(`/alarm-edit?id=${a.id}`)}
+                onToggle={() => toggleEnabled(a)}
+                onDelete={() => handleDelete(a.id)}
+                onPreview={() => router.push(`/alarm-ring?id=${a.id}`)}
+                onFixPermissions={() => handleFixPermissions(a)}
+              />
+            );
+          })
         )}
       </ScrollView>
     </SafeAreaView>
@@ -122,18 +191,22 @@ export default function AlarmsScreen() {
 
 interface AlarmCardProps {
   alarm: Alarm;
+  missingPermissions: number;
   onPress: () => void;
   onToggle: () => void;
   onDelete: () => void;
   onPreview: () => void;
+  onFixPermissions: () => void;
 }
 
 const AlarmCard: React.FC<AlarmCardProps> = ({
   alarm,
+  missingPermissions,
   onPress,
   onToggle,
   onDelete,
   onPreview,
+  onFixPermissions,
 }) => {
   const [pressed, setPressed] = useState(false);
   const ring = findRingtone(alarm.ringtoneId);
@@ -176,6 +249,24 @@ const AlarmCard: React.FC<AlarmCardProps> = ({
           testID={`alarm-toggle-${alarm.id}`}
         />
       </View>
+
+      {/* Small info badge — only when this specific alarm is missing a
+          permission it actually needs. Tap to walk through just those. */}
+      {missingPermissions > 0 ? (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onFixPermissions();
+          }}
+          hitSlop={8}
+          style={styles.infoBadge}
+          testID={`alarm-perm-info-${alarm.id}`}
+          accessibilityLabel="Some permissions are missing for this alarm. Tap to fix."
+        >
+          <Ionicons name="information" size={14} color={colors.textInverse} />
+        </Pressable>
+      ) : null}
+
       <Pressable
         onPress={(e) => {
           // Stop the row's onPress from also firing (which would route to
@@ -270,6 +361,24 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: fonts.semibold,
     marginTop: 4,
+  },
+  // Small attention badge top-right of the card. Soft amber so it reads
+  // "fix me" without screaming danger — full red would clash with the
+  // warm cream surface and stress new users.
+  infoBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.shadow,
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primaryDark,
+    alignItems: "center",
+    justifyContent: "center",
   },
   previewBtn: {
     position: "absolute",

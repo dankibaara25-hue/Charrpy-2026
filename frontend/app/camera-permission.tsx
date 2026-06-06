@@ -1,99 +1,92 @@
-// Camera permission step \u2014 mirrors notifications-permission.tsx in layout
-// (uses the shared PermissionScreen component) but drives the native
-// expo-camera popup. Sits between the notifications screen and the
-// paywall during onboarding, and is also pushed on-demand from save flows
-// (e.g. /alarm-edit) when the permission was previously skipped.
+// Camera permission step. Sits between /choose-action and /ringtone-select
+// in onboarding, and is also re-pushed from /(main) (post-paywall one-shot
+// and the per-alarm "i" icon) when the user previously skipped.
 //
-// Reads `?next=...` so the caller controls where to go after the user
-// either allows, opens settings, or skips.
+// UX rules:
+//   • CTA "Continue" always fires the native popup. Whatever the user
+//     picks, we advance — the OS now owns the permission state, not us.
+//   • "Not now" advances too (skips the prompt entirely).
+//   • Reads `?next=...` to know where to land after the user acts.
 
-import React, { useCallback, useEffect, useState } from "react";
-import { Linking } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   getCameraPermissionsAsync,
   requestCameraPermissionsAsync,
 } from "expo-camera";
 
-import PermissionScreen, {
-  type PermissionUiStatus,
-} from "@/src/components/PermissionScreen";
+import PermissionScreen from "@/src/components/PermissionScreen";
 
-const ART = require("../assets/images/onboarding/ringtone.png");
+const ART = require("../assets/images/onboarding/camera-permission.png");
 
-const BULLETS = [
-  { icon: "qr-code" as const, text: "Scan barcodes to dismiss" },
-  { icon: "camera" as const, text: "Snap a household item to verify" },
-  { icon: "lock-closed" as const, text: "Used only to verify \u2014 never stored" },
-];
-
-const DEFAULT_NEXT = "/paywall";
+const DEFAULT_NEXT = "/ringtone-select";
 
 export default function CameraPermission() {
   const router = useRouter();
   const { next } = useLocalSearchParams<{ next?: string }>();
   const target = typeof next === "string" && next.length > 0 ? next : DEFAULT_NEXT;
 
-  const [status, setStatus] = useState<PermissionUiStatus>("undetermined");
   const [busy, setBusy] = useState(false);
-
-  const probe = useCallback(async () => {
-    try {
-      const r = await getCameraPermissionsAsync();
-      if (r.status === "granted") setStatus("granted");
-      else if (r.status === "denied" && r.canAskAgain === false)
-        setStatus("denied-blocked");
-      else if (r.status === "denied") setStatus("denied-can-ask");
-      else setStatus("undetermined");
-    } catch {
-      setStatus("undetermined");
-    }
-  }, []);
+  // Track mount state so we don't setState after the screen has been
+  // replaced as part of the chain.
+  const mountedRef = useRef(true);
+  // Hold the navigation timeout so we can cancel it on unmount and not
+  // leak a pending setTimeout that fires into an unmounted component.
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    void probe();
-  }, [probe]);
+    // If the user already granted on a previous visit, skip straight
+    // through. This lets the post-paywall one-shot harmlessly include
+    // already-granted permissions without flashing the screen.
+    (async () => {
+      try {
+        const r = await getCameraPermissionsAsync();
+        if (r.status === "granted" && mountedRef.current) {
+          navTimerRef.current = setTimeout(() => {
+            if (mountedRef.current) router.replace(target as never);
+          }, 0);
+        }
+      } catch {
+        /* noop */
+      }
+    })();
+    return () => {
+      mountedRef.current = false;
+      if (navTimerRef.current) {
+        clearTimeout(navTimerRef.current);
+        navTimerRef.current = null;
+      }
+    };
+  }, [router, target]);
 
-  const proceed = useCallback(() => {
+  const advance = useCallback(() => {
+    if (!mountedRef.current) return;
     router.replace(target as never);
   }, [router, target]);
 
-  const handleAllow = useCallback(async () => {
+  const handleContinue = useCallback(async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const r = await requestCameraPermissionsAsync();
-      if (r.status === "granted") {
-        setStatus("granted");
-        setTimeout(proceed, 150);
-      } else if (r.status === "denied" && r.canAskAgain === false) {
-        setStatus("denied-blocked");
-      } else {
-        setStatus("denied-can-ask");
-      }
+      // Fire the OS popup. We don't branch on the result — whatever the
+      // user chose, the system has the truth now and we move on.
+      await requestCameraPermissionsAsync().catch(() => {});
     } finally {
-      setBusy(false);
+      if (mountedRef.current) setBusy(false);
+      // Tiny delay so the popup animation finishes before we transition.
+      navTimerRef.current = setTimeout(advance, 120);
     }
-  }, [busy, proceed]);
-
-  const handleOpenSettings = useCallback(() => {
-    Linking.openSettings().catch(() => {});
-  }, []);
+  }, [busy, advance]);
 
   return (
     <PermissionScreen
       testID="camera-permission-screen"
       art={ART}
-      title="Camera access"
-      subtitle="To scan QR codes and verify your wake-up photo challenge, Charrpy needs the camera."
-      bullets={BULLETS}
-      status={status}
+      title="Snap to wake"
+      subtitle="You'll dismiss the alarm with a photo or barcode."
       busy={busy}
-      allowLabel="Allow camera"
-      onAllow={handleAllow}
-      onOpenSettings={handleOpenSettings}
-      onContinue={proceed}
-      blockedHint="Camera is blocked."
+      onContinue={handleContinue}
+      onSkip={advance}
     />
   );
 }

@@ -65,6 +65,35 @@ const ROUTE_BY_KIND: Record<PermissionKind, string> = {
 };
 
 /**
+ * Decide which permissions a given alarm actually needs in order to work:
+ *   • notifications \u2014 always (so the alarm rings)
+ *   • camera \u2014 only when the challenge requires the lens
+ *     (barcode or photo). Math doesn't.
+ */
+export function permissionsNeededForChallenge(
+  challenge: "math" | "barcode" | "photo",
+): PermissionKind[] {
+  const needs: PermissionKind[] = ["notifications"];
+  if (challenge === "barcode" || challenge === "photo") needs.push("camera");
+  return needs;
+}
+
+/**
+ * Given the live permission status and the permissions an alarm needs,
+ * return the subset that's currently MISSING (and therefore should drive
+ * the per-alarm "i" icon and any chain push).
+ */
+export function missingForAlarm(
+  status: AlarmPermissionStatus,
+  challenge: "math" | "barcode" | "photo",
+): PermissionKind[] {
+  const needs = permissionsNeededForChallenge(challenge);
+  return needs.filter(
+    (k) => (k === "notifications" ? !status.notifications.granted : !status.camera.granted),
+  );
+}
+
+/**
  * Build a chained URL that walks every missing permission in order and
  * finally lands the user on `finalReturn`. Returns null when no permissions
  * are missing.

@@ -36,7 +36,7 @@ export default function SetAlarm() {
         meridiem: time.meridiem,
       }),
     ]);
-    router.push("/ringtone-select");
+    router.push("/choose-action");
   };
 
   return (

@@ -36,7 +36,6 @@ import {
   saveAlarm,
 } from "@/src/lib/alarms";
 import { RINGTONES, findRingtone } from "@/src/onboarding/ringtones";
-import { getAlarmPermissionStatus, buildPermissionChain } from "@/src/lib/permissions";
 
 const CHALLENGES: { id: ChallengeKind; label: string; hint: string }[] = [
   { id: "math", label: "Math", hint: "Solve a quick equation" },
@@ -133,20 +132,10 @@ export default function AlarmEdit() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
       () => {},
     );
-    // Always persist first so the alarm appears in the list immediately.
+    // Just persist and exit. We no longer gate save on permissions \u2014 if
+    // anything's missing the alarm card surfaces an "i" affordance the
+    // user can tap to grant them on demand (see (main)/index.tsx).
     await saveAlarm(alarm);
-
-    // Then enforce permissions. If anything's missing, walk the user
-    // through the dedicated permission screens (notifications → camera)
-    // sequentially and finally land them back on the Alarms tab. Without
-    // the permissions the alarm can't ring (notifications) or the
-    // photo / barcode challenge can't run (camera).
-    const status = await getAlarmPermissionStatus();
-    const chain = buildPermissionChain(status.missing, "/(main)");
-    if (chain) {
-      router.replace(chain as never);
-      return;
-    }
     router.back();
   };
 

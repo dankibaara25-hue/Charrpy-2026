@@ -1,18 +1,21 @@
 // Shared permission explainer screen. Both /notifications-permission and
 // /camera-permission render this with their own copy + request handler.
-// Keeps the layout 1:1 across both screens so the onboarding flow feels
-// like one cohesive sequence rather than two unrelated pages.
 //
-// Honours the <handle_permissions_contract>: caller passes the current
-// permission state and an `onAllow` that drives the native popup; we just
-// render the right CTA label ("Allow" / "Open settings" / "Continue")
-// based on the status the caller hands in.
+// Behaviour (intentional, per product call):
+//   • Primary CTA is ALWAYS "Continue" (never "Open settings").
+//   • Tapping Continue fires the native permission popup.
+//   • Whatever the user picks (allow OR deny OR blocked), we advance to
+//     the next screen. The OS handles the actual permission state; we
+//     just make sure the user isn't stuck.
+//   • A small "Not now" link below lets them skip entirely.
+//
+// This component is intentionally dumb — the route screen owns the
+// request logic so each permission can talk to its own native API.
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Image,
   ImageSourcePropType,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -30,33 +33,22 @@ export interface PermissionBullet {
   text: string;
 }
 
-export type PermissionUiStatus = "undetermined" | "granted" | "denied-can-ask" | "denied-blocked";
-
 export interface PermissionScreenProps {
   testID?: string;
   art: ImageSourcePropType;
   title: string;
   subtitle: string;
-  bullets: PermissionBullet[];
-  /** Status string driving the primary CTA label. */
-  status: PermissionUiStatus;
-  /** Set to true while the native popup is in-flight. */
+  bullets?: PermissionBullet[];
+  /** True while the native popup is open. */
   busy?: boolean;
-  /** Labels for the buttons (defaults work for most cases). */
-  allowLabel?: string;
-  blockedLabel?: string;
-  continueLabel?: string;
-  skipLabel?: string;
-  /** Triggered by primary tap when status is undetermined / denied-can-ask. */
-  onAllow: () => void;
-  /** Triggered by primary tap when status is denied-blocked (opens Settings). */
-  onOpenSettings: () => void;
-  /** Triggered by primary tap when status is granted, AND by the skip link. */
+  /** Fires the native permission request. We advance regardless of result. */
   onContinue: () => void;
-  /** Optional copy shown only when blocked. */
-  blockedHint?: string;
+  /** User taps "Not now". Usually identical to onContinue (just advances). */
+  onSkip: () => void;
   /** Show the back chevron in the header (default true). */
   showBack?: boolean;
+  continueLabel?: string;
+  skipLabel?: string;
 }
 
 export const PermissionScreen: React.FC<PermissionScreenProps> = ({
@@ -65,35 +57,22 @@ export const PermissionScreen: React.FC<PermissionScreenProps> = ({
   title,
   subtitle,
   bullets,
-  status,
   busy,
-  allowLabel = "Allow",
-  blockedLabel = "Open settings",
+  onContinue,
+  onSkip,
+  showBack = true,
   continueLabel = "Continue",
   skipLabel = "Not now",
-  onAllow,
-  onOpenSettings,
-  onContinue,
-  blockedHint,
-  showBack = true,
 }) => {
   const router = useRouter();
-  const granted = status === "granted";
-  const blocked = status === "denied-blocked";
-
-  const primaryLabel = granted
-    ? continueLabel
-    : blocked
-      ? blockedLabel
-      : busy
-        ? "Asking\u2026"
-        : allowLabel;
-
-  const primaryAction = granted
-    ? onContinue
-    : blocked
-      ? onOpenSettings
-      : onAllow;
+  // Track mount state so any deferred setState in the parent route can
+  // bail safely once the screen unmounts during the chained transition.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   return (
     <SafeAreaView
@@ -123,44 +102,40 @@ export const PermissionScreen: React.FC<PermissionScreenProps> = ({
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
 
-        <View style={styles.bullets}>
-          {bullets.map((b) => (
-            <View key={b.text} style={styles.bulletRow}>
-              <View style={styles.bulletIcon}>
-                <Ionicons name={b.icon} size={18} color={colors.textInverse} />
+        {bullets && bullets.length > 0 ? (
+          <View style={styles.bullets}>
+            {bullets.map((b) => (
+              <View key={b.text} style={styles.bulletRow}>
+                <View style={styles.bulletIcon}>
+                  <Ionicons
+                    name={b.icon}
+                    size={18}
+                    color={colors.textInverse}
+                  />
+                </View>
+                <Text style={styles.bulletText}>{b.text}</Text>
               </View>
-              <Text style={styles.bulletText}>{b.text}</Text>
-            </View>
-          ))}
-        </View>
-
-        {blocked && blockedHint ? (
-          <Text style={styles.blockedHint}>
-            {blockedHint}
-            {Platform.OS === "ios"
-              ? " Open Settings \u2192 Charrpy to re-enable."
-              : " Open Settings \u2192 Apps \u2192 Charrpy to re-enable."}
-          </Text>
+            ))}
+          </View>
         ) : null}
       </View>
 
       <View style={styles.footer}>
         <Button3D
-          label={primaryLabel}
-          onPress={primaryAction}
+          label={busy ? "Asking\u2026" : continueLabel}
+          onPress={onContinue}
           disabled={!!busy}
           testID={testID ? `${testID}-primary-button` : undefined}
         />
-        {!granted ? (
-          <Pressable
-            onPress={onContinue}
-            style={styles.skip}
-            hitSlop={8}
-            testID={testID ? `${testID}-skip-button` : undefined}
-          >
-            <Text style={styles.skipText}>{skipLabel}</Text>
-          </Pressable>
-        ) : null}
+        <Pressable
+          onPress={onSkip}
+          style={styles.skip}
+          hitSlop={8}
+          testID={testID ? `${testID}-skip-button` : undefined}
+          disabled={!!busy}
+        >
+          <Text style={styles.skipText}>{skipLabel}</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -190,9 +165,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   artWrap: {
-    width: "70%",
+    width: "78%",
     aspectRatio: 1,
-    maxHeight: 220,
+    maxHeight: 260,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: space.lg,
@@ -247,13 +222,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textMain,
     flex: 1,
-  },
-  blockedHint: {
-    ...type.caption,
-    color: colors.danger,
-    textAlign: "center",
-    marginTop: space.md,
-    paddingHorizontal: space.sm,
   },
   footer: {
     paddingHorizontal: space.lg,

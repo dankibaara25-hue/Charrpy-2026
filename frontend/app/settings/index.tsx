@@ -96,13 +96,6 @@ export default function SettingsMenu() {
           onPress={() => router.push("/settings/profile")}
           testID="settings-profile-row"
         />
-        <Row
-          icon="trash"
-          label="Delete account"
-          variant="danger"
-          onPress={handleDeleteAccount}
-          testID="settings-delete-row"
-        />
 
         <SectionLabel>Support</SectionLabel>
         <Row

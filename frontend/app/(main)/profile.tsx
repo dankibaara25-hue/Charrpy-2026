@@ -137,18 +137,18 @@ export default function ProfileTab() {
 
         <Text style={styles.section}>Overview</Text>
         <View style={styles.statsRow}>
-          <StatCard
-            emoji="🔥"
-            label="Streak"
-            value={`${streakCount}`}
-            testID="profile-stat-streak"
-          />
-          <StatCard
-            emoji="⚡"
-            label="XP"
-            value={`${xp}`}
-            testID="profile-stat-xp"
-          />
+        <StatCard
+          emoji="🔥"
+          label="Day streak"
+          value={`${streakCount}`}
+          testID="profile-stat-streak"
+        />
+        <StatCard
+          emoji="⚡"
+          label="Total XP"
+          value={`${xp}`}
+          testID="profile-stat-xp"
+        />
         </View>
       </ScrollView>
     </View>
@@ -171,7 +171,7 @@ const StatCard: React.FC<StatCardProps> = ({ emoji, label, value, testID }) => (
   </View>
 );
 
-const BANNER_HEIGHT = 320;
+const BANNER_HEIGHT = 220;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
@@ -199,15 +199,17 @@ const styles = StyleSheet.create({
   },
   bannerName: {
     fontFamily: fonts.bold,
-    fontSize: 28,
+    fontSize: 13,
+    letterSpacing: 0.5,
     color: colors.textMain,
     flex: 1,
     paddingRight: space.md,
+    textTransform: "lowercase",
   },
   gearBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -237,23 +239,23 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    borderColor: colors.shadow,
-    borderBottomWidth: 5,
-    borderBottomColor: colors.shadow,
-    paddingVertical: space.md,
-    paddingHorizontal: space.md,
-    alignItems: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  statTextWrap: {
+    flex: 1,
+  },
+  statEmoji: {
+    fontSize: 28,
   },
   statValue: {
     fontFamily: fonts.bold,
-    fontSize: 28,
+    fontSize: 26,
     color: colors.textMain,
-  },
-  statEmoji: {
-    fontSize: 24,
+    lineHeight: 30,
   },
   statLabel: {
     ...type.caption,

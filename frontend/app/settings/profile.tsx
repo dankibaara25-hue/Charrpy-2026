@@ -214,13 +214,14 @@ export default function EditProfile() {
           {MIN}-{MAX} letters, numbers, . _ - allowed.
         </Text>
 
-        <View style={{ height: space.lg }} />
-        <Button3D
-          label={saving ? "Saving…" : "Save changes"}
-          onPress={handleSave}
-          disabled={!validNick || saving}
-          testID="edit-profile-save-button"
-        />
+        <View style={styles.actionsWrap}>
+          <Button3D
+            label={saving ? "Saving…" : "Save changes"}
+            onPress={handleSave}
+            disabled={!validNick || saving}
+            testID="edit-profile-save-button"
+          />
+        </View>
 
         <View style={{ height: space.xl }} />
         <Pressable
@@ -329,6 +330,10 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  actionsWrap: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.lg,
   },
   deleteLabel: {
     ...type.body,

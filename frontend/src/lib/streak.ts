@@ -1,14 +1,15 @@
-// Streak + XP storage. Persists locally for now (AsyncStorage / SecureStore
-// shim via the existing storage util). Will migrate to Firestore alongside
-// the rest of the user schema in a later milestone.
+// Streak persistence — local AsyncStorage cache + Firestore sync.
+//
+// The local cache is the source-of-truth for instant UI reads. Writes
+// update local first (snappy), then fire-and-forget Firestore upsert. On
+// next launch the Firestore value (one-shot getDoc via getUserProfile)
+// wins, so if the user wiped local storage but kept their account, the
+// streak survives.
 
 import { storage } from "@/src/utils/storage";
+import { persistStreak } from "@/src/lib/userProfile";
 
 const KEY_STREAK = "charrpy.streak";
-const KEY_XP = "charrpy.xp";
-
-// Award XP per challenge completion. Tunable in one place.
-export const XP_PER_WIN = 25;
 
 const WEEK_DAYS_MON_FIRST = [
   "Mo",
@@ -23,14 +24,8 @@ const WEEK_DAYS_MON_FIRST = [
 export type WeekdayLabel = (typeof WEEK_DAYS_MON_FIRST)[number];
 
 export interface StreakState {
-  // Total consecutive days completed.
   count: number;
-  // Map of YYYY-MM-DD → true, only for days the user actually completed a
-  // wake-up challenge. We keep ~14 days to render the weekly view + handle
-  // streak grace edge cases.
   history: Record<string, true>;
-  // The most recent completed date (YYYY-MM-DD), used to decide whether
-  // today should extend the streak or reset it.
   lastDate?: string;
 }
 
@@ -50,13 +45,9 @@ const addDays = (iso: string, n: number): string => {
   return todayIso(dt);
 };
 
-const trimHistory = (
-  history: Record<string, true>,
-): Record<string, true> => {
-  // Keep last 28 entries so we always have plenty of context for the weekly
-  // strip, even across long stretches.
-  const keys = Object.keys(history).sort();
-  if (keys.length <= 28) return history;
+const trimHistory = (h: Record<string, true>): Record<string, true> => {
+  const keys = Object.keys(h).sort();
+  if (keys.length <= 28) return h;
   const keep = keys.slice(-28);
   const next: Record<string, true> = {};
   for (const k of keep) next[k] = true;
@@ -78,30 +69,32 @@ export async function readStreak(): Promise<StreakState> {
   }
 }
 
-export async function readXp(): Promise<number> {
-  const raw = await storage.getItem(KEY_XP, "");
-  if (typeof raw === "number") return raw;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : 0;
-}
+const writeLocal = (state: StreakState) =>
+  storage.setItem(KEY_STREAK, JSON.stringify(state));
 
-export async function awardXp(delta = XP_PER_WIN): Promise<number> {
-  const current = await readXp();
-  const next = Math.max(0, current + delta);
-  await storage.setItem(KEY_XP, `${next}`);
-  return next;
+/** Hydrate the local cache from a server-side StreakDoc (called once at
+ *  app startup once auth resolves). */
+export async function hydrateStreakFromServer(server: {
+  count: number;
+  history: Record<string, true>;
+  lastDate?: string;
+}): Promise<void> {
+  const local = await readStreak();
+  // Server wins if it's newer (lastDate strictly greater) OR has a higher
+  // count for the same date. Otherwise keep local (offline edits survive).
+  const localLast = local.lastDate ?? "";
+  const serverLast = server.lastDate ?? "";
+  const serverWins =
+    serverLast > localLast ||
+    (serverLast === localLast && server.count > local.count);
+  if (serverWins) await writeLocal(server);
 }
 
 export interface StreakResult {
   state: StreakState;
-  // Whether this call actually advanced the streak (false if the user
-  // already completed today's challenge earlier).
   advanced: boolean;
 }
 
-// Idempotent: calling twice in the same calendar day is a no-op for the
-// counter but still returns the current state so the reward screen can
-// re-render after a refresh.
 export async function recordChallengeWin(
   now: Date = new Date(),
 ): Promise<StreakResult> {
@@ -116,18 +109,18 @@ export async function recordChallengeWin(
   const continued = state.lastDate === yesterday;
   const nextCount = continued ? state.count + 1 : 1;
 
-  const nextState: StreakState = {
+  const next: StreakState = {
     count: nextCount,
     history: trimHistory({ ...state.history, [today]: true }),
     lastDate: today,
   };
 
-  await storage.setItem(KEY_STREAK, JSON.stringify(nextState));
-  return { state: nextState, advanced: true };
+  await writeLocal(next);
+  // Fire-and-forget Firestore sync — UI doesn't wait on the network.
+  void persistStreak(next);
+  return { state: next, advanced: true };
 }
 
-// Returns the 7 days of the current week (Mon..Sun) with each entry's
-// ISO date + whether it was completed.
 export interface WeekDayEntry {
   iso: string;
   label: WeekdayLabel;
@@ -140,9 +133,8 @@ export function buildCurrentWeek(
   now: Date = new Date(),
 ): WeekDayEntry[] {
   const today = todayIso(now);
-  // Find Monday of the current week. getDay() returns 0 for Sun..6 for Sat.
   const dow = now.getDay();
-  const daysSinceMonday = (dow + 6) % 7; // 0 if Mon, 1 if Tue, ..., 6 if Sun
+  const daysSinceMonday = (dow + 6) % 7;
   const mondayIso = addDays(today, -daysSinceMonday);
 
   return WEEK_DAYS_MON_FIRST.map((label, i) => {

@@ -17,6 +17,7 @@ import { signInAnonymously } from "firebase/auth";
 import Button3D from "@/src/components/Button3D";
 import { KeyboardAwareScrollViewShim as KeyboardAwareScrollView } from "@/src/components/KeyboardProviderShim";
 import { auth } from "@/src/lib/firebase";
+import { initUserProfile } from "@/src/lib/userProfile";
 import { findAvatar } from "@/src/onboarding/avatars";
 import { colors, fonts, radius, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
@@ -50,7 +51,19 @@ export default function Nickname() {
       await storage.setItem("charrpy.uid", cred.user.uid);
       await storage.setItem("charrpy.nickname", trimmed);
       await storage.setItem("charrpy.onboarding.completed", true);
-    router.replace("/set-alarm");
+      // Create/upsert the canonical Firestore profile so this account
+      // survives device wipes + powers the Profile tab + leaderboard later.
+      try {
+        await initUserProfile({
+          uid: cred.user.uid,
+          nickname: trimmed,
+          avatarId: avatarId ?? "",
+        });
+      } catch (e) {
+        // Profile init is non-blocking — the local cache still works.
+        console.warn("[nickname] initUserProfile failed", e);
+      }
+      router.replace("/set-alarm");
     } catch (e) {
       console.error("anon sign-in failed", e);
       setError("Couldn't create your account. Please try again.");

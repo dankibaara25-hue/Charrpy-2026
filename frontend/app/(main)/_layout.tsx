@@ -1,5 +1,6 @@
-// Bottom-tab shell for the main app. Three tabs as per spec — Alarms,
-// Leaderboard, Settings — with the same Duolingo-style dark-shadow accent.
+// Bottom-tab shell. Alarms, Leaderboard (placeholder), Profile (renamed
+// from Settings — the gear icon inside Profile opens the dedicated
+// /settings stack).
 
 import React from "react";
 import { Tabs } from "expo-router";
@@ -27,7 +28,7 @@ export default function MainLayout() {
           const map: Record<string, keyof typeof Ionicons.glyphMap> = {
             index: "alarm",
             leaderboard: "trophy",
-            settings: "settings",
+            profile: "person",
           };
           return (
             <Ionicons
@@ -41,7 +42,7 @@ export default function MainLayout() {
     >
       <Tabs.Screen name="index" options={{ title: "Alarms" }} />
       <Tabs.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
-      <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
 }

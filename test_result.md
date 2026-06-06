@@ -422,3 +422,58 @@ frontend:
 agent_communication:
   -agent: "main"
   -message: "M9 bundled multiple deliverables: (1) NEW /xp screen — purple XP badge + animated tada fanfare on mount; (2) Streak page plays trumpet fanfare on mount + chains to /xp; (3) Photo challenge now does real vision verification via Gemini 2.5 Flash on the backend (verified end-to-end with curl: avatar PNG matched 'cartoon avatar'=true/0.95 / rejected 'glass of water'=false/1.0); (4) Alarm-edit Sound picker no longer auto-dismisses on tap — plays preview audio with ref-based no-overlap lifecycle, user closes via Done/X; (5) Removed 'Test alarm' from alarm-edit; (6) Added 'Preview' pill on each alarm card at bottom-right corner. Backend vision endpoint tested and working. SFX hook uses ref + pause+remove on unmount = no memory leaks. Please QA: /xp shows '40 XP' for photo+day1; streak fanfare audible on mount; photo challenge has shutter button + try-again on bad match; sound picker preview cycles correctly without overlap; preview pill on card routes to alarm-ring."
+
+# ===== Iteration M10 — Firestore profile + Profile/Settings UX overhaul =====
+
+frontend:
+  - task: "Firestore user profile schema + sync (nickname/avatar/streak/xp)"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/lib/firebase.ts, /app/frontend/src/lib/userProfile.ts, /app/frontend/src/lib/streak.ts, /app/frontend/src/lib/xp.ts, /app/frontend/src/context/AuthContext.tsx, /app/frontend/app/nickname.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Added Firestore singleton (getFirestore) to firebase.ts. New src/lib/userProfile.ts owns the user document at users/{anonUid}: { nickname, avatarId, streak{count,history,lastDate}, xp{total,lastAwardDate}, createdAt, updatedAt }. Uses one-shot getDoc/setDoc/updateDoc per user preference for simplicity + cost. nickname.tsx now calls initUserProfile() right after signInAnonymously() so the canonical record is created. streak.ts + xp.ts now fire-and-forget persistStreak() / persistXp() on writes (local cache mirrors instantly so UI never blocks on network). AuthContext, on auth-ready, calls getUserProfile() then hydrateStreakFromServer + hydrateXpFromServer (server-wins by lastDate/lastAwardDate). Alarms stay local-only per user direction. Leaderboard intentionally deferred."
+
+  - task: "Profile tab — banner avatar, nickname top-left, gear, Add Friends share, Overview stats"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/(main)/profile.tsx, /app/frontend/app/(main)/_layout.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Renamed Settings tab → Profile (tab icon now person). New /(main)/profile.tsx: full-width 320px banner showing avatar (or person silhouette placeholder when none set yet), warm-cream backdrop (#FFE3BD) extending edge-to-edge from the top. Nickname rendered top-left over the banner in Fredoka Bold 28; gear button top-right (3D depth) → /settings. Below the banner: '+ Add friends' primary Button3D using React Native's native Share API (Charrpy URL https://www.charrpy.com). 'OVERVIEW' section with two stat cards (🔥 streak count, ⚡ xp). Hydrates from local cache first (instant), then Firestore (server truth). Re-hydrates via useFocusEffect when the tab regains focus (so editing profile reflects instantly)."
+
+  - task: "Settings stack (/settings) — Account / Support / TOS+Privacy"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/settings/_layout.tsx, /app/frontend/app/settings/index.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "New /settings stack with header back arrow. ACCOUNT section: 'Profile' row → /settings/profile, 'Delete account' row (danger-style red iconography). SUPPORT section: 'Help Center' + 'Feedback' both Linking.openURL to https://www.charrpy.com placeholder. Bottom: 'Terms of Service · Privacy Policy' footer links also opening the placeholder URL. Delete account flow shows Alert.alert confirmation, then deletes Firestore doc + auth.currentUser + clears all local storage keys, finally routes to /welcome."
+
+  - task: "Edit Profile (/settings/profile) — banner + horizontal avatar carousel + nickname + delete"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/settings/profile.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      -working: "NA"
+        -agent: "main"
+        -comment: "Mirrors the Profile tab's banner layout (280px banner with current avatar). Below: 'CHOOSE AVATAR' horizontal ScrollView showing all 19 avatars as 76px round chips with 3D depth; selected avatar gets a primary-orange ring + tan fill. Below that: nickname TextInput (re-uses the same validation as onboarding nickname: 2–16 chars, [A-Za-z0-9_.-]). Save Changes Button3D calls updateProfile() which writes both local cache + Firestore. Delete account button (red, ghost variant) at the very bottom of the page triggers same Alert flow as in /settings."
+
+agent_communication:
+  -agent: "main"
+  -message: "M10 done. Firestore wired in for the user doc only (streak + xp + nickname + avatarId), per the lean approach you confirmed. Alarms stay local. Leaderboard skipped for now. The Settings tab is gone — replaced by a Profile tab (banner avatar + nickname + gear + Add Friends share + Overview stats). The gear opens a dedicated /settings stack with Account (Profile, Delete account) and Support (Help Center, Feedback) sections plus TOS/Privacy at the bottom. /settings/profile is the edit screen — same banner layout, horizontal avatar carousel below it, nickname input, Save changes, Delete account at the bottom. Please QA: (1) Profile tab loads with banner + nickname top-left + gear top-right; (2) Add friends opens the native share sheet on real device (web shows the API call); (3) Stats cards show 🔥 streak and ⚡ XP; (4) Gear → /settings shows Account+Support sections; (5) Profile row → /settings/profile shows avatar carousel that updates the banner; (6) Save Changes writes to Firestore; (7) Delete account confirms + wipes everything + routes to /welcome. Firestore writes will silently no-op when running unauthenticated on the web preview."

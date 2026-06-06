@@ -16,6 +16,9 @@ import {
   configureRevenueCatOnce,
   identifyRevenueCatUser,
 } from "@/src/billing/Billing";
+import { getUserProfile } from "@/src/lib/userProfile";
+import { hydrateStreakFromServer } from "@/src/lib/streak";
+import { hydrateXpFromServer } from "@/src/lib/xp";
 
 interface AuthContextValue {
   user: User | null;
@@ -44,6 +47,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setInitializing(false);
       if (u) {
         void identifyRevenueCatUser(u.uid);
+        // Pull the Firestore-resident streak + XP one-shot, then mirror them
+        // into the local cache so screens that read locally show server-
+        // truth values after the next render.
+        void (async () => {
+          try {
+            const profile = await getUserProfile();
+            await hydrateStreakFromServer(profile.streak);
+            await hydrateXpFromServer(profile.xp);
+          } catch (e) {
+            console.warn("[AuthContext] hydration failed", e);
+          }
+        })();
       }
     });
     return unsub;

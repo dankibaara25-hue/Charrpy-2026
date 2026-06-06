@@ -1,7 +1,7 @@
-// Firebase singleton — modular Web SDK, configured for the charrpy-2026
-// project. Web SDK works inside Expo Go and the web preview without any
-// native build step. Initialization is guarded via getApps() so Fast Refresh
-// doesn't try to re-initialize on every save.
+// Firebase singleton — Web SDK, configured for the charrpy-2026 project.
+// Initializes Auth (anonymous) + Firestore. getApps() guards against
+// Fast Refresh re-init. Firestore is used ONLY for the user profile +
+// gamification data (nickname/avatar/streak/xp). Alarms stay local.
 
 import { Platform } from "react-native";
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
@@ -13,6 +13,7 @@ import {
   getReactNativePersistence,
   type Auth,
 } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const firebaseConfig = {
@@ -48,3 +49,4 @@ if (Platform.OS === "web") {
 
 export const firebaseApp = app;
 export const auth = authInstance;
+export const db: Firestore = getFirestore(app);

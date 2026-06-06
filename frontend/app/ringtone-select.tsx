@@ -26,7 +26,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 
 import Button3D from "@/src/components/Button3D";
-import { RINGTONES } from "@/src/onboarding/ringtones";
+import { ONBOARDING_RINGTONES as RINGTONES } from "@/src/onboarding/ringtones";
 import { colors, fonts, radius, space, type } from "@/src/theme";
 import { storage } from "@/src/utils/storage";
 

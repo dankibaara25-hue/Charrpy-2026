@@ -308,18 +308,24 @@ export default function AlarmEdit() {
         title="Pick a ringtone"
         onClose={() => setSheet(null)}
       >
-        {RINGTONES.map((r) => (
-          <PickerOption
-            key={r.id}
-            label={r.label}
-            hint={r.vibe}
-            selected={alarm.ringtoneId === r.id}
-            onPress={() => {
-              update({ ringtoneId: r.id });
-              setSheet(null);
-            }}
-          />
-        ))}
+        <ScrollView
+          style={styles.soundList}
+          showsVerticalScrollIndicator
+          contentContainerStyle={{ paddingBottom: 8 }}
+        >
+          {RINGTONES.map((r) => (
+            <PickerOption
+              key={r.id}
+              label={r.label}
+              hint={r.vibe}
+              selected={alarm.ringtoneId === r.id}
+              onPress={() => {
+                update({ ringtoneId: r.id });
+                setSheet(null);
+              }}
+            />
+          ))}
+        </ScrollView>
       </ActionSheet>
 
       <ActionSheet
@@ -560,6 +566,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: 12,
     marginBottom: 8,
+  },
+  soundList: {
+    maxHeight: 420,
   },
   daysRow: {
     flexDirection: "row",

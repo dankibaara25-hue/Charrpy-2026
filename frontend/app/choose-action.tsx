@@ -93,7 +93,7 @@ export default function ChooseAction() {
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Switch it off how?</Text>
+        <Text style={styles.title}>Switch alarm off</Text>
         <Text style={styles.subtitle}>
           Pick the task you'll do at 7am. You can change it any time.
         </Text>

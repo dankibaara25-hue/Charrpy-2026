@@ -362,9 +362,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     marginTop: 4,
   },
-  // Small attention badge top-right of the card. Soft amber so it reads
-  // "fix me" without screaming danger — full red would clash with the
-  // warm cream surface and stress new users.
+  // Small attention badge top-right of the card. Pure 3D depth (bottom
+  // shadow only) so it sits cleanly on the cream surface without a
+  // heavy black outline competing with the card's own border.
   infoBadge: {
     position: "absolute",
     top: -6,
@@ -373,8 +373,6 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.shadow,
     borderBottomWidth: 3,
     borderBottomColor: colors.primaryDark,
     alignItems: "center",

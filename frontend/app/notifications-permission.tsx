@@ -1,9 +1,10 @@
 // Notifications permission step. Sits between /ringtone-select and
 // /paywall in onboarding, and is also re-pushed from /(main) (post-paywall
-// one-shot and the per-alarm "i" icon) when previously skipped.
+// one-shot and the per-alarm "i" badge) when previously skipped.
 //
 // UX rules mirror camera-permission.tsx exactly:
-//   • "Continue" fires the popup; we advance regardless of choice.
+//   • Always renders — never auto-skips on mount, even if granted.
+//   • "Let's go" fires the popup; we advance regardless.
 //   • "Not now" advances too.
 //   • Reads `?next=...`.
 
@@ -14,11 +15,16 @@ import PermissionScreen from "@/src/components/PermissionScreen";
 import {
   configureForegroundHandler,
   ensureAlarmChannel,
-  getPermissionStatus,
   requestPermission,
 } from "@/src/lib/notifications";
 
 const ART = require("../assets/images/onboarding/ringtone.png");
+
+const BULLETS = [
+  { icon: "alarm" as const, text: "Reliable alarm delivery" },
+  { icon: "volume-high" as const, text: "Plays your chosen ringtone" },
+  { icon: "trophy" as const, text: "Streak & reward reminders" },
+];
 
 const DEFAULT_NEXT = "/paywall";
 
@@ -34,18 +40,6 @@ export default function NotificationsPermission() {
   useEffect(() => {
     configureForegroundHandler();
     void ensureAlarmChannel();
-    (async () => {
-      try {
-        const r = await getPermissionStatus();
-        if (r.status === "granted" && mountedRef.current) {
-          navTimerRef.current = setTimeout(() => {
-            if (mountedRef.current) router.replace(target as never);
-          }, 0);
-        }
-      } catch {
-        /* noop */
-      }
-    })();
     return () => {
       mountedRef.current = false;
       if (navTimerRef.current) {
@@ -53,7 +47,7 @@ export default function NotificationsPermission() {
         navTimerRef.current = null;
       }
     };
-  }, [router, target]);
+  }, []);
 
   const advance = useCallback(() => {
     if (!mountedRef.current) return;
@@ -75,9 +69,11 @@ export default function NotificationsPermission() {
     <PermissionScreen
       testID="notifications-permission-screen"
       art={ART}
-      title="Loud and clear"
-      subtitle="So the alarm rings through silent and locked screens."
+      title="Let Charrpy wake you up"
+      subtitle="Turn on notifications so your alarm can ring loud and clear, even on silent."
+      bullets={BULLETS}
       busy={busy}
+      continueLabel="Let's go"
       onContinue={handleContinue}
       onSkip={advance}
     />

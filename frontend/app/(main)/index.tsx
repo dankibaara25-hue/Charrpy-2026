@@ -362,18 +362,21 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     marginTop: 4,
   },
-  // Small attention badge top-right of the card. Pure 3D depth (bottom
-  // shadow only) so it sits cleanly on the cream surface without a
-  // heavy black outline competing with the card's own border.
+  // Small attention badge top-LEFT of the card. True 3D depth: thin
+  // outline in the primaryDark amber shade (NOT black, so it doesn't
+  // fight the card border) + thicker bottom edge for the lift. Reads
+  // clearly as a tappable raised pill on cream + white surfaces.
   infoBadge: {
     position: "absolute",
     top: -6,
-    right: -6,
+    left: -6,
     width: 26,
     height: 26,
     borderRadius: 13,
     backgroundColor: colors.primary,
-    borderBottomWidth: 3,
+    borderWidth: 1.5,
+    borderColor: colors.primaryDark,
+    borderBottomWidth: 4,
     borderBottomColor: colors.primaryDark,
     alignItems: "center",
     justifyContent: "center",
